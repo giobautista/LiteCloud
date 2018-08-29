@@ -54,7 +54,7 @@ function initialize_variables {
 
 function reload_webserver {
 
-    systemctl reload nginx
+    systemctl restart nginx.service
 
 } # End function reload_webserver
 

@@ -5,7 +5,7 @@ DISTRO=`lsb_release -i -s`
 # Distribution's release. Squeeze, wheezy, precise etc
 RELEASE=`lsb_release -c -s`
 if  [ $DISTRO = "" ]; then
-    echo -e "\033[35;1mPlease run 'aptitude -y install lsb-release' before using this script.\033[0m"
+    echo -e "\033[35;1mPlease run 'apt-get -y install lsb-release' before using this script.\033[0m"
     exit 1
 fi
 
@@ -14,7 +14,7 @@ fi
 
 function basic_server_setup {
 
-    aptitude update && aptitude -y safe-upgrade
+    apt-get update && apt-get -y safe-upgrade
 
     # Reconfigure sshd - change port and disable root login
     sed -i 's/^Port [0-9]*/Port '${SSHD_PORT}'/' /etc/ssh/sshd_config
@@ -39,7 +39,7 @@ function basic_server_setup {
 
 function install_webserver {
 
-    aptitude -y install nginx
+    apt-get -y install nginx
     ufw allow 'Nginx HTTP'
 
     if  [ $USE_NGINX_ORG_REPO = "yes" ]; then
@@ -65,8 +65,8 @@ function install_webserver {
 function install_php {
 
     # Install PHP packages and extensions specified in options.conf
-    aptitude -y install $PHP_BASE
-    # aptitude -y install $PHP_EXTRAS
+    apt-get -y install $PHP_BASE
+    # apt-get -y install $PHP_EXTRAS
 
 } # End function install_php
 
@@ -74,11 +74,11 @@ function install_php {
 function install_extras {
 
     if [ $AWSTATS_ENABLE = 'yes' ]; then
-        aptitude -y install awstats
+        apt-get -y install awstats
     fi
 
     # Install any other packages specified in options.conf
-    aptitude -y install $MISC_PACKAGES
+    apt-get -y install $MISC_PACKAGES
 
 } # End function install_extras
 
@@ -94,17 +94,17 @@ function install_mysql {
     fi
 
     if [ $DBSERVER = 2 ]; then
-        aptitude -y install mariadb-server mariadb-client
+        apt-get -y install mariadb-server mariadb-client
     elif [ $DBSERVER = 3 ]; then
-        aptitude -y install percona-server-server-5.6 percona-server-client-5.6
+        apt-get -y install percona-server-server-5.6 percona-server-client-5.6
     else
-        aptitude -y install mysql-server mysql-client
+        apt-get -y install mysql-server mysql-client
     fi
 
     echo -e "\033[35;1m Securing MySQL... \033[0m"
     sleep 5
 
-    aptitude -y install expect
+    apt-get -y install expect
 
     SECURE_MYSQL=$(expect -c "
         set timeout 10
@@ -125,7 +125,7 @@ function install_mysql {
     ")
 
     echo "$SECURE_MYSQL"
-    aptitude -y purge expect
+    apt-get -y purge expect
 
 } # End function install_mysql
 
@@ -155,7 +155,7 @@ function optimize_stack {
         sed -i 's/^[^#]/#&/' /etc/cron.d/awstats
     fi
 
-    systemctl stop php7.0-fpm
+    systemctl stop php7.0-fpm.service
 
     php_fpm_conf="/etc/php/7.0/fpm/pool.d/www.conf"
     # Limit FPM processes
@@ -181,9 +181,9 @@ function optimize_stack {
 
     restart_webserver
     sleep 2
-    systemctl start php7.0-fpm
+    systemctl start php7.0-fpm.service
     sleep 2
-    systemctl restart php7.0-fpm
+    systemctl restart php7.0-fpm.service
     echo -e "\033[35;1m Optimize complete! \033[0m"
 
 } # End function optimize
@@ -195,7 +195,7 @@ function install_postfix {
     echo "postfix postfix/main_mailer_type select Internet Site" | debconf-set-selections
     echo "postfix postfix/mailname string $HOSTNAME_FQDN" | debconf-set-selections
     echo "postfix postfix/destinations string localhost.localdomain, localhost" | debconf-set-selections
-    aptitude -y install postfix
+    apt-get -y install postfix
 
     # Allow mail delivery from localhost only
     /usr/sbin/postconf -e "inet_interfaces = loopback-only"
@@ -351,7 +351,7 @@ function install_letsencrypt {
 
 function restart_webserver {
 
-    systemctl reload nginx
+    systemctl restart nginx.service
 
 } # End function restart_webserver
 
@@ -411,7 +411,7 @@ install)
     install_extras
     install_postfix
     restart_webserver
-    systemctl restart php7.0-fpm
+    systemctl restart php7.0-fpm.service
     echo -e "\033[35;1m Webserver + PHP-FPM + MySQL install complete! \033[0m"
     ;;
 optimize)
