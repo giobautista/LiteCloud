@@ -14,7 +14,7 @@ fi
 
 function basic_server_setup {
 
-    apt-get update && apt-get -y safe-upgrade
+    apt-get update && apt-get -y upgrade
 
     # Reconfigure sshd - change port and disable root login
     sed -i 's/^Port [0-9]*/Port '${SSHD_PORT}'/' /etc/ssh/sshd_config
