@@ -1,14 +1,14 @@
 #!/bin/bash
 
 # First uninstall any unnecessary packages.
-apt-get update
-apt-get -y install nano
-apt-get -y install lsb-release
+apt update
+apt -y install nano
+apt -y install lsb-release
 systemctl stop apache2.service
 systemctl stop sendmail.service
 systemctl stop bind9.service
 systemctl stop nscd.service
-apt-get -y purge nscd bind9 sendmail apache2 apache2.2-common
+apt -y purge nscd bind9 sendmail apache2 apache2.2-common
 
 echo ""
 echo "Installing updates & configuring SSHD / hostname."
@@ -16,7 +16,7 @@ sleep 5
 ./setup.sh basic
 
 echo ""
-echo "Installing LAMP or LNMP stack."
+echo "Installing LEMP stack."
 sleep 5
 ./setup.sh install
 
@@ -24,6 +24,11 @@ echo ""
 echo "Installing phpmyadmin/adminer."
 sleep 5
 ./setup.sh dbgui
+
+echo ""
+echo "Installing Let's Encrypt Certbot."
+sleep 5
+./setup.sh letsencrypt
 
 echo ""
 echo "Optimizing AWStats, PHP, logrotate & webserver config."

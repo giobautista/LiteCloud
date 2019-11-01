@@ -14,14 +14,20 @@ fi
 
 function basic_server_setup {
 
-    apt-get update && apt-get -y upgrade
+    apt update && apt -y upgrade
 
     # Reconfigure sshd - change port and disable root login
     sed -i 's/^Port [0-9]*/Port '${SSHD_PORT}'/' /etc/ssh/sshd_config
 	if  [ $ROOT_LOGIN = "no" ]; then
     	sed -i 's/PermitRootLogin yes/PermitRootLogin no/' /etc/ssh/sshd_config
 	fi;
-    systemctl reload sshd
+    # Enable Password Authentication
+    sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
+    systemctl reload ssh.service
+
+    # Set hostname and FQDN
+    sed -i 's/'${SERVER_IP}'.*/'${SERVER_IP}' '${HOSTNAME_FQDN}' '${HOSTNAME}'/' /etc/hosts
+    echo "$HOSTNAME" > /etc/hostname
 
     # Basic hardening of sysctl.conf
     sed -i 's/^#net.ipv4.conf.all.accept_source_route = 0/net.ipv4.conf.all.accept_source_route = 0/' /etc/sysctl.conf
@@ -39,7 +45,7 @@ function basic_server_setup {
 
 function install_webserver {
 
-    apt-get -y install nginx
+    apt -y install nginx
     ufw allow 'Nginx HTTP'
 
     if  [ $USE_NGINX_ORG_REPO = "yes" ]; then
@@ -65,8 +71,8 @@ function install_webserver {
 function install_php {
 
     # Install PHP packages and extensions specified in options.conf
-    apt-get -y install $PHP_BASE
-    # apt-get -y install $PHP_EXTRAS
+    apt -y install $PHP_BASE
+    apt -y install $PHP_EXTRAS
 
 } # End function install_php
 
@@ -74,45 +80,41 @@ function install_php {
 function install_extras {
 
     if [ $AWSTATS_ENABLE = 'yes' ]; then
-        apt-get -y install awstats
+        apt -y install awstats
     fi
 
     # Install any other packages specified in options.conf
-    apt-get -y install $MISC_PACKAGES
+    apt -y install $MISC_PACKAGES
 
 } # End function install_extras
 
 
 function install_mysql {
 
-    if [ $DBSERVER = 3 ]; then
-        echo "percona-server-server-5.6 percona-server-server/root_password password $MYSQL_ROOT_PASSWORD" | debconf-set-selections
-        echo "percona-server-server-5.6 percona-server-server/root_password_again password $MYSQL_ROOT_PASSWORD" | debconf-set-selections
+    if [ $DBSERVER = 1 ]; then
+        apt -y install mariadb-server mariadb-client
     else
-        echo "mysql-server mysql-server/root_password password $MYSQL_ROOT_PASSWORD" | debconf-set-selections
-        echo "mysql-server mysql-server/root_password_again password $MYSQL_ROOT_PASSWORD" | debconf-set-selections
-    fi
-
-    if [ $DBSERVER = 2 ]; then
-        apt-get -y install mariadb-server mariadb-client
-    elif [ $DBSERVER = 3 ]; then
-        apt-get -y install percona-server-server-5.6 percona-server-client-5.6
-    else
-        apt-get -y install mysql-server mysql-client
+        apt -y install mysql-server mysql-client
     fi
 
     echo -e "\033[35;1m Securing MySQL... \033[0m"
     sleep 5
 
-    apt-get -y install expect
+    apt -y install expect
 
     SECURE_MYSQL=$(expect -c "
         set timeout 10
         spawn mysql_secure_installation
         expect \"Enter current password for root (enter for none):\"
-        send \"$MYSQL_ROOT_PASSWORD\r\"
+        send \"\r\"
         expect \"Change the root password?\"
-        send \"n\r\"
+        send \"y\r\"
+        expect \"Set root password?\"
+        send \"y\r\"
+        expect \"New password:\"
+        send \"$MYSQL_ROOT_PASSWORD\r\"
+        expect \"Re-enter new password:\"
+        send \"$MYSQL_ROOT_PASSWORD\r\"
         expect \"Remove anonymous users?\"
         send \"y\r\"
         expect \"Disallow root login remotely?\"
@@ -155,9 +157,9 @@ function optimize_stack {
         sed -i 's/^[^#]/#&/' /etc/cron.d/awstats
     fi
 
-    systemctl stop php7.0-fpm.service
+    systemctl stop php7.2-fpm.service
 
-    php_fpm_conf="/etc/php/7.0/fpm/pool.d/www.conf"
+    php_fpm_conf="/etc/php/7.2/fpm/pool.d/www.conf"
     # Limit FPM processes
     sed -i 's/^pm.max_children.*/pm.max_children = '${FPM_MAX_CHILDREN}'/' $php_fpm_conf
     sed -i 's/^pm.start_servers.*/pm.start_servers = '${FPM_START_SERVERS}'/' $php_fpm_conf
@@ -167,7 +169,7 @@ function optimize_stack {
     # Change to socket connection for better performance
     sed -i 's/^listen =.*/listen = \/var\/run\/php7.0-fpm.sock/' $php_fpm_conf
 
-    php_ini_dir="/etc/php/7.0/fpm/php.ini"
+    php_ini_dir="/etc/php/7.2/fpm/php.ini"
     # Tweak php.ini based on input in options.conf
     sed -i 's/^max_execution_time.*/max_execution_time = '${PHP_MAX_EXECUTION_TIME}'/' $php_ini_dir
     sed -i 's/^memory_limit.*/memory_limit = '${PHP_MEMORY_LIMIT}'/' $php_ini_dir
@@ -181,9 +183,9 @@ function optimize_stack {
 
     restart_webserver
     sleep 2
-    systemctl start php7.0-fpm.service
+    systemctl start php7.2-fpm.service
     sleep 2
-    systemctl restart php7.0-fpm.service
+    systemctl restart php7.2-fpm.service
     echo -e "\033[35;1m Optimize complete! \033[0m"
 
 } # End function optimize
@@ -195,7 +197,7 @@ function install_postfix {
     echo "postfix postfix/main_mailer_type select Internet Site" | debconf-set-selections
     echo "postfix postfix/mailname string $HOSTNAME_FQDN" | debconf-set-selections
     echo "postfix postfix/destinations string localhost.localdomain, localhost" | debconf-set-selections
-    apt-get -y install postfix
+    apt -y install postfix
 
     # Allow mail delivery from localhost only
     /usr/sbin/postconf -e "inet_interfaces = loopback-only"
@@ -204,6 +206,8 @@ function install_postfix {
     postfix stop
     sleep 1
     postfix start
+    sleep 1
+    systemctl restart postfix
 
 } # End function install_postfix
 
@@ -342,9 +346,10 @@ function secure_tmp_dd {
 } # End function secure_tmp_tmpdd
 
 function install_letsencrypt {
-    add-apt-repository ppa:certbot/certbot
-    apt-get update
-    apt-get install -y python-certbot-nginx
+    # add-apt-repository ppa:certbot/certbot
+    # apt-get update
+    # apt-get install -y python-certbot-nginx
+    apt -y install certbot
     ufw allow 'Nginx Full'
     ufw delete allow 'Nginx HTTP'
 }
@@ -411,7 +416,7 @@ install)
     install_extras
     install_postfix
     restart_webserver
-    systemctl restart php7.0-fpm.service
+    systemctl restart php7.2-fpm.service
     echo -e "\033[35;1m Webserver + PHP-FPM + MySQL install complete! \033[0m"
     ;;
 optimize)
