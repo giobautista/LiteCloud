@@ -42,7 +42,7 @@ kindly refer to these links:-
     ./domain.sh dbgui on
     ./domain.sh dbgui off
 
-### DO NOT FORGET TO ADD A REGULAR USER WITH SUDOER CAPABILITY!
+### DO NOT FORGET TO ADD A USER WITH SUDO CAPABILITY!
 
 ### Last step is to add user to database
 
