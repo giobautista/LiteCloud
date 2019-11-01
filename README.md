@@ -16,7 +16,6 @@ kindly refer to these links:-
 ### Quick Install (Git)
 
     # Install git and clone CloudLite
-    apt-get -y install git
     git clone https://github.com/giobautista/CloudLite.git
     cd CloudLite
 
@@ -27,7 +26,7 @@ kindly refer to these links:-
     chmod 700 *.sh
     chmod 700 options.conf
 
-    # Install LAMP or LNMP stack.
+    # Install LEMP stack.
     ./install.sh
 
     # Add a new Linux user and add domains to the user.
