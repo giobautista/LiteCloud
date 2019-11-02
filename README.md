@@ -77,3 +77,8 @@ kindly refer to these links:-
     recommended.
 
 If this is your first time with a Linux server, I suggest spending a day reading the "getting started" tutorials in Linode Library.
+
+#### TO DO
+- Database management
+    + db (add, remove)
+    + user (add, remove)

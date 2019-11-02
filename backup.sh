@@ -22,7 +22,7 @@ function ask_interval {
     SELECT_INTERVAL="a"
     # Keep looping until user enters a number that is greater than 0 and less than 3
     until  [[ "$SELECT_INTERVAL" =~ [0-9]+ ]] && [ $SELECT_INTERVAL -gt 0 ] && [ $SELECT_INTERVAL -le 3 ]; do
-        echo -n "Selection (integer) : "
+        echo -n "Choose [integer]: "
         read SELECT_INTERVAL
     done
 
@@ -131,7 +131,7 @@ function cron_backupdb {
 
     # Keep on looping until input is a number that is greater than 0 and less than the number of available databases
     until  [[ "$SELECTDB" =~ [0-9]+ ]] && [ $SELECTDB -gt 0 ] && [ $SELECTDB -le $counter ]; do
-        echo -n "Selection (integer) : "
+        echo -n "Choose [integer]: "
         read SELECTDB
     done
 
@@ -203,7 +203,7 @@ function cron_backupdomain {
 
     # Keep on looping until input is a number that is greater than 0 and less than the number of available databases
     until  [[ "$SELECTDOMAIN" =~ [0-9]+ ]] && [ $SELECTDOMAIN -gt 0 ] && [ $SELECTDOMAIN -le $counter ]; do
-        echo -n "Selection (integer) : "
+        echo -n "Choose [integer]: "
         read SELECTDOMAIN
     done
 

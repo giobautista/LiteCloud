@@ -9,12 +9,17 @@ if  [ $DISTRO = "" ]; then
     exit 1
 fi
 
-
 #### Functions Begin ####
 
 function basic_server_setup {
 
     apt update && apt -y upgrade
+
+    # Set timezone
+    timedatectl set-timezone $TIME_ZONE
+
+    echo -e "\033[35;1m Timezone has been set... \033[0m"
+    sleep 2
 
     # Reconfigure sshd - change port and disable root login
     sed -i 's/^Port [0-9]*/Port '${SSHD_PORT}'/' /etc/ssh/sshd_config
@@ -346,10 +351,10 @@ function secure_tmp_dd {
 } # End function secure_tmp_tmpdd
 
 function install_letsencrypt {
-    # add-apt-repository ppa:certbot/certbot
-    # apt-get update
-    # apt-get install -y python-certbot-nginx
-    apt -y install certbot
+    apt-get install -y software-properties-common
+    add-apt-repository ppa:certbot/certbot
+    apt-get update
+    apt-get install -y certbot python-certbot-nginx
     ufw allow 'Nginx Full'
     ufw delete allow 'Nginx HTTP'
 }
