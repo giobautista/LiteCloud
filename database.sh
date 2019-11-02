@@ -4,9 +4,6 @@
 # (1)/var(2)/lib(3)/mysql(4)/dbname(5)
 AWK_DB_POS="5"
 
-# Seconds to wait before removing a domain/virtualhost
-REMOVE_DOMAIN_TIMER=10
-
 source ./options.conf
 
 function find_available_databases {
