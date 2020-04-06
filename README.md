@@ -41,6 +41,9 @@ If this is your first time with a Linux server, head over to [Digital Ocean](htt
     adduser johndoe
     ./domain.sh add johndoe yourdomain.com
     ./domain.sh add johndoe subdomain.yourdomain.com
+    
+    # Add SSL certificates using Let's Encrypt
+    ./domain.sh ssl user Domain.ltd
 
     # Install Adminer or phpMyAdmin
     ./setup.sh dbgui
