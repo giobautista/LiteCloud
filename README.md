@@ -37,8 +37,17 @@ If this is your first time with a Linux server, head over to [Digital Ocean](htt
     # Install LEMP stack.
     ./install.sh
 
-    # Add a new Linux user and add domains to the user.
-    adduser johndoe
+### Add a new Linux user then add to sudoer (since root is now disabled).
+
+    # To add user
+    adduser johnsmith
+    
+    # To add user to sudoer
+    usermod -aG sudo johnsmith
+
+### Add domain to the user
+
+    # Add domains to the user
     ./domain.sh add johnsmith yourdomain.com
     ./domain.sh add johnsmith subdomain.yourdomain.com
     
@@ -52,14 +61,6 @@ If this is your first time with a Linux server, head over to [Digital Ocean](htt
     # Enable/disable public viewing of Adminer/phpMyAdmin
     ./domain.sh dbgui on
     ./domain.sh dbgui off
-
-### DO NOT FORGET TO ADD A USER WITH SUDO CAPABILITY!
-
-    # To add user
-    adduser johnsmith
-    
-    # To add user to sudoer
-    usermod -aG sudo johnsmith
 
 #### TO DO
 - Database management
