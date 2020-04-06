@@ -27,12 +27,12 @@ If this is your first time with a Linux server, head over to [Digital Ocean](htt
     git clone https://github.com/giobautista/BittyCloud.git
     cd BittyCloud
 
-    # Edit options to enter server IP, MySQL password etc.
-    nano options.conf
-
     # Make all scripts executable.
     chmod 700 *.sh
     chmod 700 options.conf
+
+    # Edit options to enter server IP, MariaDB/MySQL password etc.
+    nano options.conf
 
     # Install LEMP stack.
     ./install.sh
