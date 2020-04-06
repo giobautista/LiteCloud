@@ -369,8 +369,8 @@ if [ ! -n "$1" ]; then
     echo     " - Remove everything for Domain.tld including stats and public_html. If necessary, backup domain files before executing!"
 
     echo -n  "$0"
-    echo -ne "\033[36m letsencrypt user Domain.ltd\033[0m"
-    echo     " - Configure Lets Encrypt certificate."
+    echo -ne "\033[36m ssl user Domain.ltd\033[0m"
+    echo     " - Configure Let's Encrypt SSL certificate."
 
     echo -n  "$0"
     echo -ne "\033[36m dbgui on|off\033[0m"
@@ -474,7 +474,7 @@ stats)
         awstats_off
     fi
     ;;
-letsencrypt)
+ssl)
     # Set up variables
     DOMAIN_OWNER=$2
     DOMAIN=$3
