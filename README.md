@@ -39,11 +39,12 @@ If this is your first time with a Linux server, head over to [Digital Ocean](htt
 
     # Add a new Linux user and add domains to the user.
     adduser johndoe
-    ./domain.sh add johndoe yourdomain.com
-    ./domain.sh add johndoe subdomain.yourdomain.com
+    ./domain.sh add johnsmith yourdomain.com
+    ./domain.sh add johnsmith subdomain.yourdomain.com
     
     # Add SSL certificates using Let's Encrypt
-    ./domain.sh ssl user Domain.ltd
+    ./domain.sh ssl johnsmith yourdomain.com
+    ./domain.sh ssl johnsmith subdomain.yourdomain.com    
 
     # Install Adminer or phpMyAdmin
     ./setup.sh dbgui
@@ -52,7 +53,13 @@ If this is your first time with a Linux server, head over to [Digital Ocean](htt
     ./domain.sh dbgui on
     ./domain.sh dbgui off
 
-## DO NOT FORGET TO ADD A USER WITH SUDO CAPABILITY!
+### DO NOT FORGET TO ADD A USER WITH SUDO CAPABILITY!
+
+    # To add user
+    adduser johnsmith
+    
+    # To add user to sudoer
+    usermod -aG sudo johnsmith
 
 #### TO DO
 - Database management
