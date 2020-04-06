@@ -391,7 +391,7 @@ if [ ! -n "$1" ]; then
 
     echo -n "$0"
     echo -ne "\033[36m letsencrypt\033[0m"
-    echo     " - Installing Lets Encrypt SSl/TLS"
+    echo     " - Installing Let's Encrypt"
 
     echo -n "$0"
     echo -ne "\033[36m dbgui\033[0m"
