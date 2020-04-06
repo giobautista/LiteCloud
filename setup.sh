@@ -126,7 +126,7 @@ function install_mysql {
     ")
 
     echo "$SECURE_MYSQL"
-    # apt-get -y purge expect
+    apt-get -y purge expect
 
 } # End function install_mysql
 
@@ -348,16 +348,7 @@ function install_letsencrypt {
     apt-get install -y software-properties-common
     add-apt-repository ppa:certbot/certbot
     apt-get update
-    # apt-get install -y certbot python-certbot-nginx
-    SECURE_MYSQL=$(expect -c "
-        set timeout 10
-        spawn apt-get install -y certbot python-certbot-nginx
-        expect \"Press [ENTER] to continue or Ctrl-c to cancel adding it.\"
-        send \"\r\"
-        expect eof
-    ")
-
-    echo "$SECURE_MYSQL"    
+    apt-get install -y certbot python-certbot-nginx
     ufw allow 'Nginx Full'
     ufw delete allow 'Nginx HTTP'
 }
