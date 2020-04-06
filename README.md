@@ -11,7 +11,6 @@ The following are going to be installed:
 -   MySQL, MariaDB
 -   PHP-FPM + commonly used PHP modules
 -   Postfix mail server (securely configured to be outgoing only)
--   Varnish cache (optional)
 
 ### Requirements
 
@@ -56,5 +55,3 @@ If this is your first time with a Linux server, head over to [Digital Ocean](htt
 - Database management
     + db (add, remove)
     + user (add, remove)
-    
-####
