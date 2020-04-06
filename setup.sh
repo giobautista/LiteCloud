@@ -111,23 +111,17 @@ function install_mysql {
         set timeout 10
         spawn mysql_secure_installation
         expect \"Enter current password for root (enter for none):\"
-        send \"\r\"
+        send \"$MYSQL_ROOT_PASSWORD\r\"
         expect \"Change the root password?\"
-        send \"y\r\"
-        expect \"Set root password?\"
-        send \"y\r\"
-        expect \"New password:\"
-        send \"$MYSQL_ROOT_PASSWORD\r\"
-        expect \"Re-enter new password:\"
-        send \"$MYSQL_ROOT_PASSWORD\r\"
+        send \"n\r\"
         expect \"Remove anonymous users?\"
-        send \"y\r\"
+        send \"Y\r\"
         expect \"Disallow root login remotely?\"
-        send \"y\r\"
+        send \"Y\r\"
         expect \"Remove test database and access to it?\"
-        send \"y\r\"
+        send \"Y\r\"
         expect \"Reload privilege tables now?\"
-        send \"y\r\"
+        send \"Y\r\"
         expect eof
     ")
 
