@@ -205,16 +205,16 @@ if [ ! -n "$1" ]; then
     echo     " - Create new database"
 
     echo -n  "$0"
+    echo -ne "\033[36m rem db\033[0m"
+    echo     " - Destroy a database (cannot be undone)"
+
+    echo -n  "$0"
     echo -ne "\033[36m new user\033[0m"
     echo     " - Create new user"
 
     echo -n  "$0"
     echo -ne "\033[36m new super_user\033[0m"
     echo     " - Create new SUPER user"
-
-    echo -n  "$0"
-    echo -ne "\033[36m rem db\033[0m"
-    echo     " - Destroy a database (cannot be undone)"
 
     echo -n  "$0"
     echo -ne "\033[36m rem user\033[0m"
