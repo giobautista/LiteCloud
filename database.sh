@@ -21,7 +21,7 @@ function find_available_databases {
 
     # No databases found, ask user to add database first
     if [ $DATABASES_AVAILABLE -eq 0 ]; then
-        echo "No databases available for backup. Please add a database first."
+        echo "No database found. Please add a database first."
         exit
     fi
 
@@ -48,6 +48,7 @@ function add_database {
 } # End of add_database
 
 function remove_database {
+
     # Initialize selection value when listing available databases to user
     counter=1
     # Check how many databases are available
@@ -55,9 +56,9 @@ function remove_database {
 
     # Print out available databases
     echo ""
-    echo "Select the database you want to backup, 1 to $DB_AVAILABLE"
+    echo "Select the database you want to drop, 1 to $DB_AVAILABLE"
     while read LINE; do
-        # For each domain path, use AWK to get only the domain name and leave out the full path
+        # Get only the database name and leave out the full path
         data=`echo $LINE | awk -F"/" '{ print $'${AWK_DB_POS}' }'`
         echo "$counter. $data"
         # Increment counter for next iteration
@@ -73,6 +74,7 @@ function remove_database {
 
     # Keep on looping until input is a number that is greater than 0 and less than the number of available databases
     until  [[ "$SELECTDB" =~ [0-9]+ ]] && [ $SELECTDB -gt 0 ] && [ $SELECTDB -le $counter ]; do
+        echo ""
         echo -n "Choose [integer]: "
         read SELECTDB
     done
@@ -82,7 +84,7 @@ function remove_database {
 
     echo -e "\033[31;1mWARNING: This will permanently delete \"$DATABASE\"\033[0m"
     echo -e "\033[31mIf you wish to stop it, press \033[1mCTRL+C\033[0m \033[31mto abort.\033[0m"
-    sleep 5
+    sleep 10
     # remove database
     mysql -e "DROP DATABASE \`${DATABASE}\`;"
 
@@ -157,6 +159,43 @@ function add_super_user {
 
 } # End of add_reg_user
 
+function remove_user {
+
+    echo "Enter username: "
+    read USERNAME
+
+    # Check if user exists
+    CHECK_USER="$(mysql -sse "SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user='$USERNAME');")"
+
+    if [[ $CHECK_USER -eq 0 ]]; then
+        # If user exists throw this message
+        echo "Sorry, that username does not exists!"
+    else
+
+       echo -e "\033[31;1mWARNING: This will permanently delete \"$USERNAME\"\033[0m"
+       echo -e "\033[31mIf you wish to stop it, press \033[1mCTRL+C\033[0m \033[31mto abort.\033[0m"
+       sleep 5
+
+       # remove username
+       mysql -e "DELETE FROM mysql.user WHERE user = '${USERNAME}';"
+
+       #mysql -e "DROP USER IF EXISTS \'\'@\'\';"
+
+       echo ""
+       echo -e "User \033[36m\"$USERNAME\"\033[0m has been removed!"
+       echo ""
+
+    fi
+
+
+} # End of remove_user
+
+function list_users {
+
+    mysql -e "SELECT user FROM mysql.user"
+
+} # End of list_users
+
 # Start main program
 if [ ! -n "$1" ]; then
     echo ""
@@ -177,6 +216,10 @@ if [ ! -n "$1" ]; then
     echo -ne "\033[36m rem db\033[0m"
     echo     " - Destroy a database (cannot be undone)"
 
+    echo -n  "$0"
+    echo -ne "\033[36m rem user\033[0m"
+    echo     " - Remove a user (cannot be undone)"
+
     echo ""
     exit
 fi
@@ -195,6 +238,16 @@ rem)
     if [ "$2" = "db" ]; then
       find_available_databases
       remove_database
+    elif [ "$2" = "user" ]; then
+      remove_user
+    fi
+    ;;
+
+list)
+    if [ "$2" = "db" ]; then
+      list_dbs
+    elif [ "$2" = "users" ]; then
+      list_users
     fi
     ;;
 esac
