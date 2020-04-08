@@ -199,7 +199,8 @@ function list_users {
 # Start main program
 if [ ! -n "$1" ]; then
     echo ""
-
+    echo -e "\033[35;1mSelect from the options below to use this script:- \033[0m"
+    
     echo -n  "$0"
     echo -ne "\033[36m new db\033[0m"
     echo     " - Create new database"
