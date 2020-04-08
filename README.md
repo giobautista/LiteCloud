@@ -62,7 +62,18 @@ If this is your first time with a Linux server, head over to [Digital Ocean](htt
     ./domain.sh dbgui on
     ./domain.sh dbgui off
 
-#### TO DO
+### Database and database user management
+
+    # Create and drop database
+    ./database.sh new db - Create new database
+    ./database.sh rem db - Destroy a database (cannot be undone)
+
+    # Create and remove user
+    ./database.sh new user - Create new user
+    ./database.sh new super_user - Create new SUPER user
+    ./database.sh rem user - Remove a user (cannot be undone)
+
+#### Work in progress
 - Database management
     + db (add, remove)
     + user (add, remove)
