@@ -7,9 +7,9 @@ BittyCloud only installs the very essentials to get your website up and running.
 The following are going to be installed:
 
 -   Nginx
--   Let's Encrypt
 -   MySQL, MariaDB
 -   PHP-FPM + commonly used PHP modules
+-   Let's Encrypt SSL (in progress)
 -   Postfix mail server (securely configured to be outgoing only)
 
 ### Requirements
@@ -53,7 +53,7 @@ If this is your first time with a Linux server, head over to [Digital Ocean](htt
     
     # Add SSL certificates using Let's Encrypt
     ./domain.sh ssl johnsmith yourdomain.com
-    ./domain.sh ssl johnsmith subdomain.yourdomain.com    
+    ./domain.sh ssl johnsmith subdomain.yourdomain.com
 
     # Install Adminer or phpMyAdmin
     ./setup.sh dbgui
