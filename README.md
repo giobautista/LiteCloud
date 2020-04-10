@@ -1,8 +1,8 @@
-### BittyCLoud Readme
+### LiteCloud Readme
 
-BittyCloud is forked from a project called TuxLite, a free collection of shell scripts for immidiate deployment of LEMP stacks (Linux, Nginx, MySQL and PHP 7.2) for Ubuntu and Debian.
+LiteCloud is forked from a project called TuxLite, a free collection of shell scripts for immidiate deployment of LEMP stacks (Linux, Nginx, MySQL and PHP 7.2) for Ubuntu and Debian.
 
-BittyCloud only installs the very essentials to get your website up and running.
+LiteCloud only installs the very essentials to get your website up and running.
 
 The following are going to be installed:
 
@@ -23,9 +23,9 @@ If this is your first time with a Linux server, head over to [Digital Ocean](htt
 
 ### Quick Install (Git)
 
-    # Install git and clone BittyCloud
-    git clone https://github.com/giobautista/BittyCloud.git
-    cd BittyCloud
+    # Install git and clone LiteCloud
+    git clone https://github.com/giobautista/LiteCloud.git
+    cd LiteCloud
 
     # Make all scripts executable.
     chmod 700 *.sh
@@ -74,6 +74,7 @@ If this is your first time with a Linux server, head over to [Digital Ocean](htt
     ./database.sh rem user - Remove a user (cannot be undone)
 
 #### Work in progress
+- Let's Encrypt SSL
 - Database management
     + db (add, remove)
     + user (add, remove)
