@@ -13,7 +13,8 @@ fi
 
 function basic_server_setup {
 
-    apt update && apt -y upgrade
+    #apt update && apt -y upgrade
+    apt update
 
     # Set timezone
     timedatectl set-timezone $TIME_ZONE
