@@ -22,12 +22,7 @@ If this is your first time with a Linux server, head over to [Digital Ocean](htt
 ### Quick Install (Git)
 
     # Install git and clone LiteCloud
-    git clone https://github.com/giobautista/LiteCloud.git
-    cd LiteCloud
-
-    # Make all scripts executable.
-    chmod 700 *.sh
-    chmod 700 options.conf
+    git clone https://github.com/giobautista/LiteCloud.git ; cd LiteCloud ; chmod 700 *.sh ; chmod 700 options.conf
 
     # Edit options to enter server IP, MariaDB/MySQL password etc.
     nano options.conf
