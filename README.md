@@ -2,12 +2,10 @@
 
 LiteCloud is forked from a project called TuxLite, a free collection of shell scripts for immidiate deployment of LEMP stacks (Linux, Nginx, MySQL and PHP 7.2) for Ubuntu and Debian.
 
-LiteCloud only installs the very essentials to get your website up and running.
-
-The following are going to be installed:
+### The following are going to be installed:
 
 -   Nginx
--   MySQL, MariaDB
+-   MariaDB, MySQL
 -   PHP-FPM + commonly used PHP modules
 -   Let's Encrypt SSL (in progress)
 -   Postfix mail server (securely configured to be outgoing only)
@@ -73,8 +71,18 @@ If this is your first time with a Linux server, head over to [Digital Ocean](htt
     ./database.sh new super_user - Create new SUPER user
     ./database.sh rem user - Remove a user (cannot be undone)
 
-#### Work in progress
+### So, why Nginx only?
+
+We want to run a very efficient webserver using minimal server specifications and Nginx will allow us to do that over Apache. (no debate intended, which is a better webserver)
+
+### Work in progress
 - Let's Encrypt SSL
 - Database management
     + db (add, remove)
     + user (add, remove)
+
+### Future feature
+
+- Run Nginx with Apache
+    + Nginx runs proxy
+    + Apache as backend
