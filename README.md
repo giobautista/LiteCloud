@@ -58,12 +58,12 @@ If this is your first time with a Linux server, head over to [Digital Ocean](htt
 ### Database and database user management
 
     # Create and drop database
-    ./database.sh new db - Create new database
+    ./database.sh add db - Create new database
     ./database.sh rem db - Destroy a database (cannot be undone)
 
     # Create and remove user
-    ./database.sh new user - Create new user
-    ./database.sh new super_user - Create new SUPER user
+    ./database.sh add user - Create new user
+    ./database.sh add super_user - Create new SUPER user
     ./database.sh rem user - Remove a user (cannot be undone)
 
 ### So, why Nginx only?
