@@ -79,6 +79,8 @@ function install_php {
     # Install PHP packages and extensions specified in options.conf
     apt -y install $PHP_BASE
     apt -y install $PHP_EXTRAS
+    # Enable PHP-FPM
+    systemctl enable php7.4-fpm
 
 } # End function install_php
 
@@ -183,8 +185,6 @@ function optimize_stack {
 
     restart_webserver
     sleep 2
-    # Enable PHP-FPM v7.4
-    systemctl enable php7.4-fpm
     systemctl start php7.4-fpm.service
     sleep 2
     systemctl restart php7.4-fpm.service
