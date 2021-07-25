@@ -13,8 +13,8 @@ fi
 
 function basic_server_setup {
 
-    #apt update && apt -y upgrade
-    apt update
+    apt update && apt -y upgrade
+    # apt update
 
     # Set timezone
     timedatectl set-timezone $TIME_ZONE
@@ -79,6 +79,8 @@ function install_php {
     # Install PHP packages and extensions specified in options.conf
     apt -y install $PHP_BASE
     apt -y install $PHP_EXTRAS
+    # Enable PHP-FPM
+    systemctl enable php7.4-fpm
 
 } # End function install_php
 
@@ -157,9 +159,9 @@ function optimize_stack {
         sed -i 's/^[^#]/#&/' /etc/cron.d/awstats
     fi
 
-    systemctl stop php7.2-fpm.service
+    systemctl stop php*-fpm.service
 
-    php_fpm_conf="/etc/php/7.2/fpm/pool.d/www.conf"
+    php_fpm_conf="/etc/php/*/fpm/pool.d/www.conf"
     # Limit FPM processes
     sed -i 's/^pm.max_children.*/pm.max_children = '${FPM_MAX_CHILDREN}'/' $php_fpm_conf
     sed -i 's/^pm.start_servers.*/pm.start_servers = '${FPM_START_SERVERS}'/' $php_fpm_conf
@@ -169,7 +171,7 @@ function optimize_stack {
     # Change to socket connection for better performance
     sed -i 's/^listen =.*/listen = \/var\/run\/php7.0-fpm.sock/' $php_fpm_conf
 
-    php_ini_dir="/etc/php/7.2/fpm/php.ini"
+    php_ini_dir="/etc/php/*/fpm/php.ini"
     # Tweak php.ini based on input in options.conf
     sed -i 's/^max_execution_time.*/max_execution_time = '${PHP_MAX_EXECUTION_TIME}'/' $php_ini_dir
     sed -i 's/^memory_limit.*/memory_limit = '${PHP_MEMORY_LIMIT}'/' $php_ini_dir
@@ -183,9 +185,9 @@ function optimize_stack {
 
     restart_webserver
     sleep 2
-    systemctl start php7.2-fpm.service
+    systemctl start php7.4-fpm.service
     sleep 2
-    systemctl restart php7.2-fpm.service
+    systemctl restart php7.4-fpm.service
     echo -e "\033[35;1m Optimize complete! \033[0m"
 
 } # End function optimize
@@ -210,7 +212,6 @@ function install_postfix {
     systemctl restart postfix
 
 } # End function install_postfix
-
 
 
 function install_dbgui {
@@ -346,10 +347,13 @@ function secure_tmp_dd {
 } # End function secure_tmp_tmpdd
 
 function install_letsencrypt {
-    apt-get install -y software-properties-common
-    add-apt-repository ppa:certbot/certbot
-    apt-get update
-    apt-get install -y certbot python-certbot-nginx
+    # apt-get install -y software-properties-common
+    # add-apt-repository ppa:certbot/certbot
+    # apt-get update
+    # apt-get install -y certbot python-certbot-nginx
+    apt update
+    apt install -y python3-acme python3-certbot python3-mock python3-openssl python3-pkg-resources python3-pyparsing python3-zope.interface
+    apt install -y python3-certbot-nginx
     ufw allow 'Nginx Full'
     ufw delete allow 'Nginx HTTP'
 }
@@ -416,7 +420,7 @@ install)
     install_extras
     install_postfix
     restart_webserver
-    systemctl restart php7.2-fpm.service
+    systemctl restart php*-fpm.service
     echo -e "\033[35;1m Webserver + PHP-FPM + MySQL install complete! \033[0m"
     ;;
 optimize)

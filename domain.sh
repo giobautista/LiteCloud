@@ -118,7 +118,7 @@ server {
         # Pass PHP scripts to PHP-FPM
         location ~ \.php$ {
             include snippets/fastcgi-php.conf;
-            fastcgi_pass unix:/run/php7.0-fpm.sock;
+            fastcgi_pass unix:/run/php/php-fpm.sock;
         }
 
         location ~ /\.ht {

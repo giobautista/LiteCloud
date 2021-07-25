@@ -1,6 +1,6 @@
 ### LiteCloud Readme
 
-LiteCloud is forked from a project called TuxLite, a free collection of shell scripts for immidiate deployment of LEMP stacks (Linux, Nginx, MySQL and PHP 7.2) for Ubuntu and Debian.
+LiteCloud is based on a project called TuxLite, a free collection of shell scripts for immidiate deployment of LEMP stacks (Linux, Nginx, MySQL and PHP 7.4) for Ubuntu 20.04 (TLS) x64.
 
 ### The following are going to be installed:
 
@@ -34,7 +34,7 @@ If this is your first time with a Linux server, head over to [Digital Ocean](htt
 
     # To add user
     adduser johnsmith
-    
+
     # To add user to sudoer
     usermod -aG sudo johnsmith
 
@@ -43,7 +43,7 @@ If this is your first time with a Linux server, head over to [Digital Ocean](htt
     # Add domains to the user
     ./domain.sh add johnsmith yourdomain.com
     ./domain.sh add johnsmith subdomain.yourdomain.com
-    
+
     # Add SSL certificates using Let's Encrypt
     ./domain.sh ssl johnsmith yourdomain.com
     ./domain.sh ssl johnsmith subdomain.yourdomain.com
@@ -58,12 +58,12 @@ If this is your first time with a Linux server, head over to [Digital Ocean](htt
 ### Database and database user management
 
     # Create and drop database
-    ./database.sh new db - Create new database
+    ./database.sh add db - Create new database
     ./database.sh rem db - Destroy a database (cannot be undone)
 
     # Create and remove user
-    ./database.sh new user - Create new user
-    ./database.sh new super_user - Create new SUPER user
+    ./database.sh add user - Create new user
+    ./database.sh add super_user - Create new SUPER user
     ./database.sh rem user - Remove a user (cannot be undone)
 
 ### So, why Nginx only?
