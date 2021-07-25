@@ -13,8 +13,8 @@ fi
 
 function basic_server_setup {
 
-    #apt update && apt -y upgrade
-    apt update
+    apt update && apt -y upgrade
+    # apt update
 
     # Set timezone
     timedatectl set-timezone $TIME_ZONE
@@ -183,9 +183,11 @@ function optimize_stack {
 
     restart_webserver
     sleep 2
-    systemctl start php*-fpm.service
+    # Enable PHP-FPM v7.4
+    systemctl enable php7.4-fpm
+    systemctl start php7.4-fpm.service
     sleep 2
-    systemctl restart php*-fpm.service
+    systemctl restart php7.4-fpm.service
     echo -e "\033[35;1m Optimize complete! \033[0m"
 
 } # End function optimize
