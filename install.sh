@@ -42,6 +42,6 @@ sleep 5
 #./setup.sh tmpfs
 
 echo ""
-echo "Installation complete!"
-echo "Root login disabled."
-echo "Please add a normal user now using the \"adduser\" command."
+echo -e "\033[36;1m Installation complete! \033[0m"
+echo -e "\033[35;1m Root login disabled. \033[0m"
+echo -e "\033[35;1m Please add a normal user now using the \"adduser\" command. \033[0m"
