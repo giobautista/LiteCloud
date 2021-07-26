@@ -202,7 +202,7 @@ if [ ! -n "$1" ]; then
   echo -e "\033[35;1mSelect from the options below to use this script:- \033[0m"
 
   echo -n  "$0"
-  echo -ne "\033[36m new db\033[0m"
+  echo -ne "\033[36m add db\033[0m"
   echo     " - Create new database"
 
   echo -n  "$0"
@@ -210,11 +210,11 @@ if [ ! -n "$1" ]; then
   echo     " - Destroy a database (cannot be undone)"
 
   echo -n  "$0"
-  echo -ne "\033[36m new user\033[0m"
+  echo -ne "\033[36m add user\033[0m"
   echo     " - Create new user"
 
   echo -n  "$0"
-  echo -ne "\033[36m new super_user\033[0m"
+  echo -ne "\033[36m add super_user\033[0m"
   echo     " - Create new SUPER user"
 
   echo -n  "$0"
