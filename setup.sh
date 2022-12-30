@@ -90,7 +90,7 @@ function install_php {
 
   if [ $RELEASE != "jammy" ]; then
     apt -y install lsb-release ca-certificates apt-transport-https software-properties-common
-    add-apt-repository ppa:ondrej/php
+    echo -ne '\n' | add-apt-repository ppa:ondrej/php
     apt update
   fi
 
