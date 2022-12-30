@@ -391,8 +391,9 @@ function install_letsencrypt {
   # apt-get update
   # apt-get install -y certbot python-certbot-nginx
   apt update
-  apt install -y python3-acme python3-certbot python3-mock python3-openssl python3-pkg-resources python3-pyparsing python3-zope.interface
-  apt install -y python3-certbot-nginx
+#   apt install -y python3-acme python3-certbot python3-mock python3-openssl python3-pkg-resources python3-pyparsing python3-zope.interface
+#   apt install -y python3-certbot-nginx
+  apt install -y certbot python3-certbot-nginx
   ufw allow 'Nginx Full'
   ufw delete allow 'Nginx HTTP'
 }
