@@ -4,6 +4,7 @@
 apt update
 apt -y install nano
 apt -y install lsb-release
+apt -y install ufw
 systemctl stop apache2.service
 systemctl stop sendmail.service
 systemctl stop bind9.service
