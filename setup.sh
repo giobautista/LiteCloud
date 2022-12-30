@@ -44,16 +44,16 @@ function basic_server_setup {
     echo -e "\033[35;1m Remember to create a normal user account for login or you will be locked out from your box! \033[0m"
 
     # Prompt to create normal user now!
-    echo ""
-    read -p "Do you wish to create user now (y/n)? " answer
-    case ${answer:0:1} in
-        y|Y )
-            create_new_user
-        ;;
-        * )
-            exit
-        ;;
-    esac
+    # echo ""
+    # read -p "Do you wish to create user now (y/n)? " answer
+    # case ${answer:0:1} in
+    #     y|Y )
+    #         create_new_user
+    #     ;;
+    #     * )
+    #         exit
+    #     ;;
+    # esac
 
 	else
 		echo -e "\033[35;1m Root login active, SSH port set to $SSHD_PORT. \033[0m"
@@ -88,11 +88,23 @@ function install_webserver {
 
 function install_php {
 
+  if [ $RELEASE != "jammy" ]; then
+    apt -y install lsb-release ca-certificates apt-transport-https software-properties-common
+    add-apt-repository ppa:ondrej/php
+    apt update
+  fi
+
+  if [ $RELEASE != "bullseye" ]; then
+    apt -y install lsb-release ca-certificates apt-transport-https software-properties-common
+    curl -sSL https://packages.sury.org/php/README.txt | sudo bash -x
+    apt update
+  fi
+
   # Install PHP packages and extensions specified in options.conf
   apt -y install $PHP_BASE
   apt -y install $PHP_EXTRAS
   # Enable PHP-FPM
-  systemctl enable php7.4-fpm
+  systemctl enable php8.1-fpm
 
 } # End function install_php
 
@@ -152,7 +164,7 @@ function optimize_stack {
   cat ./config/nginx.conf > /etc/nginx/nginx.conf
 
   # Change nginx user from  "www-data" to "nginx". Not really necessary
-  # because "www-data" user is created when installing PHP5-FPM
+  # because "www-data" user is created when installing PHP-FPM
   if  [ $USE_NGINX_ORG_REPO = "yes" ]; then
     sed -i 's/^user\s*www-data/user nginx/' /etc/nginx/nginx.conf
   fi
@@ -181,7 +193,7 @@ function optimize_stack {
   sed -i 's/^pm.max_spare_servers.*/pm.max_spare_servers = '${FPM_MAX_SPARE_SERVERS}'/' $php_fpm_conf
   sed -i 's/\;pm.max_requests.*/pm.max_requests = '${FPM_MAX_REQUESTS}'/' $php_fpm_conf
   # Change to socket connection for better performance
-  sed -i 's/^listen =.*/listen = \/var\/run\/php7.0-fpm.sock/' $php_fpm_conf
+  sed -i 's/^listen =.*/listen = \/var\/run\/php8.1-fpm.sock/' $php_fpm_conf
 
   php_ini_dir="/etc/php/*/fpm/php.ini"
   # Tweak php.ini based on input in options.conf
@@ -197,9 +209,9 @@ function optimize_stack {
 
   restart_webserver
   sleep 2
-  systemctl start php7.4-fpm.service
+  systemctl start php*-fpm.service
   sleep 2
-  systemctl restart php7.4-fpm.service
+  systemctl restart php*-fpm.service
   echo -e "\033[35;1m Optimize complete! \033[0m"
 
 } # End function optimize
