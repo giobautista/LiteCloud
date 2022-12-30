@@ -42,6 +42,19 @@ function basic_server_setup {
 	if  [ $ROOT_LOGIN = "no" ]; then
     echo -e "\033[35;1m Root login disabled, SSH port set to $SSHD_PORT. \033[0m"
     echo -e "\033[35;1m Remember to create a normal user account for login or you will be locked out from your box! \033[0m"
+
+    # Prompt to create normal user now!
+    echo ""
+    read -p "Do you wish to create user now (y/n)? " answer
+    case ${answer:0:1} in
+        y|Y )
+            create_new_user
+        ;;
+        * )
+            exit
+        ;;
+    esac
+
 	else
 		echo -e "\033[35;1m Root login active, SSH port set to $SSHD_PORT. \033[0m"
 	fi
@@ -261,6 +274,21 @@ function install_dbgui {
 
 } # End function install_dbgui
 
+function create_new_user {
+    echo ""
+    echo "Enter username"
+    read NEW_USER
+
+    adduser $NEW_USER
+
+    echo ""
+    echo "Adding ${NEW_USER} to sudo group"
+
+    usermod -aG sudo $NEW_USER
+
+    echo ""
+    echo "User successfully created and added to sudoer"
+} # End function create_new_user
 
 function check_tmp_secured {
 
