@@ -183,7 +183,7 @@ function optimize_stack {
     sed -i 's/^[^#]/#&/' /etc/cron.d/awstats
   fi
 
-  systemctl stop php*-fpm.service
+  systemctl stop php8.1-fpm.service
 
   php_fpm_conf="/etc/php/*/fpm/pool.d/www.conf"
   # Limit FPM processes
@@ -209,9 +209,9 @@ function optimize_stack {
 
   restart_webserver
   sleep 2
-  systemctl start php*-fpm.service
+  systemctl start php8.1-fpm.service
   sleep 2
-  systemctl restart php*-fpm.service
+  systemctl restart php8.1-fpm.service
   echo -e "\033[35;1m Optimize complete! \033[0m"
 
 } # End function optimize
@@ -460,7 +460,7 @@ install)
   install_extras
   install_postfix
   restart_webserver
-  systemctl restart php*-fpm.service
+  systemctl restart php8.1-fpm.service
   echo -e "\033[35;1m Webserver + PHP-FPM + MySQL install complete! \033[0m"
   ;;
 optimize)
