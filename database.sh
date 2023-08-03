@@ -1,5 +1,14 @@
 #!/bin/bash
 
+# Check root
+if [ "$(id -u)" = "0" ]; then
+    clear
+else
+    clear
+    echo -e "\033[35;1mYou must have root access to run this script\033[0m"
+    exit 1
+fi
+
 # Used to filter database name from its full system path
 # (1)/var(2)/lib(3)/mysql(4)/dbname(5)
 AWK_DB_POS="5"

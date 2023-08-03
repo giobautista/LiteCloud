@@ -1,15 +1,25 @@
 #!/bin/bash
 
-# First uninstall any unnecessary packages.
-apt update
-apt -y install nano
-apt -y install lsb-release
-apt -y install ufw
-systemctl stop apache2.service
-systemctl stop sendmail.service
-systemctl stop bind9.service
-systemctl stop nscd.service
-apt -y purge nscd bind9 sendmail apache2 apache2.2-common
+# Check root
+if [ "$(id -u)" = "0" ]; then
+    clear
+else
+    clear
+    echo -e "\033[35;1mYou must have root access to run this script\033[0m"
+    exit 1
+fi
+
+echo ""
+echo "Preparing server"
+sleep 5
+sudo apt update
+sudo apt -y upgrade
+sudo apt -y install nano expect lsb-release ufw curl wget vim rpl sed zip unzip openssl dirmngr dos2unix
+sudo systemctl stop apache2.service
+sudo systemctl stop sendmail.service
+sudo systemctl stop bind9.service
+sudo systemctl stop nscd.service
+sudo apt -y purge nscd bind9 sendmail apache2 apache2.2-common
 
 echo ""
 echo "Installing updates & configuring SSHD / hostname."

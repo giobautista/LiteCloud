@@ -1,19 +1,19 @@
 ### LiteCloud Readme
 
-LiteCloud is based on a project called TuxLite, a free collection of shell scripts for immidiate deployment of LEMP stacks (Linux, Nginx, MySQL and PHP 7.4) for Ubuntu 20.04 (TLS) x64.
+LiteCloud is based on a project called TuxLite, a free collection of shell scripts for immidiate deployment of LEMP stacks (Linux, Nginx, MySQL and PHP 8.1) for Ubuntu 22.04 (TLS) x64.
 
 ### The following are going to be installed:
 
 -   Nginx
--   MariaDB, MySQL
+-   MariaDB or MySQL
 -   PHP-FPM + commonly used PHP modules
--   Let's Encrypt SSL (in progress)
+-   Let's Encrypt SSL
 -   Postfix mail server (securely configured to be outgoing only)
 
 ### Requirements
 
--   Supports Ubuntu 18.04, Debian 8.
--   A server with at least 512MB RAM. 1GB and above recommended.
+-   Supports Ubuntu 22.04, Debian 12.1
+-   A server with at least 512MB RAM. (1GB and above is recommended)
 -   Basic Linux knowledge. You will need know how to connect to your server remotely.
 -   Basic text editor knowledge. For beginners, learning GNU nano is recommended.
 
@@ -71,7 +71,7 @@ If this is your first time with a Linux server, head over to [Digital Ocean](htt
 We want to run a very efficient webserver using minimal server specifications and Nginx will allow us to do that over Apache. (no debate intended, which is a better webserver)
 
 ### Work in progress
-- Let's Encrypt SSL
+
 - Database management
     + db (add, remove)
     + user (add, remove)

@@ -1,5 +1,14 @@
 #!/bin/bash
 
+# Check root
+if [ "$(id -u)" = "0" ]; then
+    clear
+else
+    clear
+    echo -e "\033[35;1mYou must have root access to run this script\033[0m"
+    exit 1
+fi
+
 source ./options.conf
 
 # Seconds to wait before removing a domain/virtualhost
@@ -51,13 +60,11 @@ function initialize_variables {
 
 }
 
-
 function reload_webserver {
 
-  systemctl restart nginx.service
+  sudo systemctl restart nginx.service
 
 } # End function reload_webserver
-
 
 function add_domain {
 
@@ -208,7 +215,6 @@ EOF
 
 } # End function add_domain
 
-
 function remove_domain {
 
   echo -e "\033[31;1mWARNING: This will permanently delete everything related to $DOMAIN\033[0m"
@@ -246,7 +252,6 @@ function remove_domain {
 
 } # End function remove_domain
 
-
 function check_domain_exists {
 
   # If virtualhost config exists in /sites-available or the vhost directory exists,
@@ -258,7 +263,6 @@ function check_domain_exists {
   fi
 
 } # End function check_domain_exists
-
 
 function check_domain_valid {
 
@@ -279,7 +283,6 @@ function check_domain_valid {
 
 } # End function check_domain_valid
 
-
 function awstats_on {
 
   # Search virtualhost directory to look for "stats". In case the user created a stats folder, we do not want to overwrite it.
@@ -298,7 +301,6 @@ function awstats_on {
 
 } # End function awstats_on
 
-
 function awstats_off {
 
   # Search virtualhost directory to look for "stats" symbolic links
@@ -313,7 +315,6 @@ function awstats_off {
   echo -e "\033[35;1mAwstats disabled. If you do not see any \"removed\" messages, it means it has already been disabled.\033[0m"
 
 } # End function awstats_off
-
 
 function dbgui_on {
 
@@ -333,7 +334,6 @@ function dbgui_on {
 
 } # End function dbgui_on
 
-
 function dbgui_off {
 
   # Search virtualhost directory to look for "dbgui" symbolic links
@@ -349,10 +349,17 @@ function dbgui_off {
 
 } # End function dbgui_off
 
-
 function letsencrypt_on {
-  certbot --nginx -d $DOMAIN -d www.$DOMAIN
-}
+  sudo fuser -k 80/tcp
+  sudo fuser -k 443/tcp
+  restart_webserver
+  sudo ufw disable
+  sudo certbot --nginx -d $DOMAIN -d www.$DOMAIN --non-interactive --agree-tos --register-unsafely-without-email
+  sudo sed -i 's/443 ssl/443 ssl http2/g' /etc/nginx/sites-enabled/$DOMAIN
+  sudo ufw --force enable
+  restart_webserver
+
+} # End function letsencrypt_on
 
 #### Main program begins ####
 

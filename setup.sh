@@ -1,19 +1,48 @@
+#!/bin/bash
+
+# Check root
+if [ "$(id -u)" = "0" ]; then
+    clear
+else
+    clear
+    echo -e "\033[35;1mYou must have root access to run this script\033[0m"
+    exit 1
+fi
+
 source ./options.conf
 
-# Detect distribution. Debian or Ubuntu
-DISTRO=`lsb_release -i -s`
-# Distribution's release. Squeeze, wheezy, precise etc
-RELEASE=`lsb_release -c -s`
-if  [ $DISTRO = "" ]; then
-  echo -e "\033[35;1mPlease run 'apt-get -y install lsb-release' before using this script.\033[0m"
-  exit 1
+# Get server's IP
+SERVER_IP=$(curl -s https://checkip.amazonaws.com)
+
+# Generate random password
+RAND_PASS=$(openssl rand -base64 32|sha256sum|base64|head -c 32| tr '[:upper:]' '[:lower:]')
+
+# Get distribution, Ubuntu or Debian
+DISTRO=$(grep -oP '(?<=^ID=).+' /etc/os-release | tr -d '"')
+
+# Get distribution version.
+VERSION=$(grep -oP '(?<=^VERSION_ID=).+' /etc/os-release | tr -d '"')
+
+# Latest release version, 22.04 Focal
+if [ "$DISTRO" = "ubuntu" ] || [ "$DISTRO" = "debian" ]; then
+    case $VERSION in
+        22.04|12.1)
+            break
+            ;;
+        *)
+            echo -e "\033[35;1mLiteCloud requires Ubuntu 22.04 LTS or Debian 12.1\033[0m"
+            exit 1;
+            break
+            ;;
+    esac
+else
+    echo -e "\033[35;1mLiteCloud requires Ubuntu 22.04 LTS or Debian 12.1\033[0m"
+    exit 1
 fi
 
 #### Functions Begin ####
 
 function basic_server_setup {
-
-  apt update && apt -y upgrade
 
   # Set timezone
   echo -e "\033[35;1m Setting Timezone... \033[0m"
@@ -40,20 +69,12 @@ function basic_server_setup {
   sed -i 's/^#net.ipv6.conf.all.accept_source_route = 0/net.ipv6.conf.all.accept_source_route = 0/' /etc/sysctl.conf
   sed -i 's/^net.ipv6.conf.all.accept_source_route = 1/net.ipv6.conf.all.accept_source_route = 0/' /etc/sysctl.conf
 	if  [ $ROOT_LOGIN = "no" ]; then
-    echo -e "\033[35;1m Root login disabled, SSH port set to $SSHD_PORT. \033[0m"
-    echo -e "\033[35;1m Remember to create a normal user account for login or you will be locked out from your box! \033[0m"
+    sudo useradd -m -s /bin/bash $SUDO_USER
+    echo "$SUDO_USER:$SUDO_PASS"|sudo chpasswd
+    sudo usermod -aG sudo $SUDO_USER
 
-    # Prompt to create normal user now!
-    # echo ""
-    # read -p "Do you wish to create user now (y/n)? " answer
-    # case ${answer:0:1} in
-    #     y|Y )
-    #         create_new_user
-    #     ;;
-    #     * )
-    #         exit
-    #     ;;
-    # esac
+    echo -e "\033[35;1m Root login disabled, SSH port set to $SSHD_PORT. \033[0m"
+    echo -e "\033[35;1m Remember to use SUDO credentials for login or you will be locked out from your box! \033[0m"
 
 	else
 		echo -e "\033[35;1m Root login active, SSH port set to $SSHD_PORT. \033[0m"
@@ -63,100 +84,126 @@ function basic_server_setup {
 
 function install_webserver {
 
-  apt -y install nginx
-  ufw allow 'Nginx HTTP'
-
-  if  [ $USE_NGINX_ORG_REPO = "yes" ]; then
-    mkdir /etc/nginx/sites-available
-    mkdir /etc/nginx/sites-enabled
-
-       # Disable vhost that isn't in the sites-available folder. Put a hash in front of any line.
-       sed -i 's/^[^#]/#&/' /etc/nginx/conf.d/default.conf
-
-       # Enable default vhost in /etc/nginx/sites-available
-       ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
-  fi
+  sudo apt -y install nginx
 
   # Add a catch-all default vhost
-  cat ./config/nginx_default_vhost.conf > /etc/nginx/sites-available/default
+  sudo cat ./config/nginx_default_vhost.conf > /etc/nginx/sites-available/default
 
   # Change default vhost root directory to /usr/share/nginx/html;
   sed -i 's/\(root \/usr\/share\/nginx\/\).*/\1html;/' /etc/nginx/sites-available/default
+
+  sudo systemctl start nginx.service
+  sudo rpl -i -w "http {" "http { limit_req_zone \$binary_remote_addr zone=one:10m rate=1r/s; fastcgi_read_timeout 300;" /etc/nginx/nginx.conf
+  sudo rpl -i -w "http {" "http { limit_req_zone \$binary_remote_addr zone=one:10m rate=1r/s; fastcgi_read_timeout 300;" /etc/nginx/nginx.conf
+  sudo systemctl enable nginx.service
+
+  # Configure firewall
+  sudo apt-get -y install fail2ban
+  JAIL=/etc/fail2ban/jail.local
+  sudo unlink JAIL
+  sudo touch $JAIL
+  sudo cat > "$JAIL" <<EOF
+[DEFAULT]
+bantime = 3600
+banaction = iptables-multiport
+[sshd]
+enabled = true
+logpath  = /var/log/auth.log
+EOF
+  sudo systemctl restart fail2ban
+  sudo ufw --force enable
+  sudo ufw allow ssh
+  sudo ufw allow http
+  sudo ufw allow https
+  sudo ufw allow "Nginx Full"
 
 } # End function install_webserver
 
 
 function install_php {
 
-  if [ $RELEASE != "jammy" ]; then
-    apt -y install lsb-release ca-certificates apt-transport-https software-properties-common
-    echo -ne '\n' | add-apt-repository ppa:ondrej/php
-    apt update
-  fi
-
-  if [ $RELEASE != "bullseye" ]; then
-    apt -y install lsb-release ca-certificates apt-transport-https software-properties-common
-    curl -sSL https://packages.sury.org/php/README.txt | sudo bash -x
-    apt update
-  fi
-
   # Install PHP packages and extensions specified in options.conf
-  apt -y install $PHP_BASE
-  apt -y install $PHP_EXTRAS
+  sudo apt -y install $PHP_BASE
+  sudo apt -y install $PHP_EXTRAS
   # Enable PHP-FPM
-  systemctl enable php8.1-fpm
+  sudo systemctl enable php8.1-fpm
 
 } # End function install_php
-
 
 function install_extras {
 
   if [ $AWSTATS_ENABLE = 'yes' ]; then
-    apt -y install awstats
+    sudo apt -y install awstats
   fi
 
   # Install any other packages specified in options.conf
-  apt -y install $MISC_PACKAGES
+  sudo apt -y install $MISC_PACKAGES
 
 } # End function install_extras
-
 
 function install_mysql {
 
   if [ $DBSERVER = 1 ]; then
-    apt -y install mariadb-server mariadb-client
+    sudo apt -y install mariadb-server
+
+    echo -e "\033[35;1m Securing MariaDB... \033[0m"
+    sleep 2
+
+    SECURE_MYSQL=$(expect -c "
+        set timeout 10
+        spawn mysql_secure_installation
+        expect \"Enter current password for root (enter for none):\"
+        send \"$MYSQL_ROOT_PASS\r\"
+        expect \"Change the root password?\"
+        send \"n\r\"
+        expect \"Remove anonymous users?\"
+        send \"Y\r\"
+        expect \"Disallow root login remotely?\"
+        send \"Y\r\"
+        expect \"Remove test database and access to it?\"
+        send \"Y\r\"
+        expect \"Reload privilege tables now?\"
+        send \"Y\r\"
+        expect eof
+    ")
+    echo "$SECURE_MYSQL"
+
   else
-    apt -y install mysql-server mysql-client
+    sudo apt -y install mysql-server
+
+    echo -e "\033[35;1m Securing MySQL... \033[0m"
+    sleep 2
+
+    SECURE_MYSQL=$(expect -c "
+        set timeout 10
+        spawn mysql_secure_installation
+        expect \"Press y|Y for Yes, any other key for No:\"
+        send \"n\r\"
+        expect \"New password:\"
+        send \"$MYSQL_ROOT_PASS\r\"
+        expect \"Re-enter new password:\"
+        send \"$MYSQL_ROOT_PASS\r\"
+        expect \"Remove anonymous users? (Press y|Y for Yes, any other key for No)\"
+        send \"y\r\"
+        expect \"Disallow root login remotely? (Press y|Y for Yes, any other key for No)\"
+        send \"n\r\"
+        expect \"Remove test database and access to it? (Press y|Y for Yes, any other key for No)\"
+        send \"y\r\"
+        expect \"Reload privilege tables now? (Press y|Y for Yes, any other key for No) \"
+        send \"y\r\"
+        expect eof
+    ")
+    echo "$SECURE_MYSQL"
+
+    /usr/bin/mysql -u root -p$MYSQL_ROOT_PASS <<EOF
+use mysql;
+CREATE USER '$MYSQL_ROOT_USER'@'%' IDENTIFIED WITH mysql_native_password BY '$MYSQL_ROOT_PASS';
+GRANT ALL PRIVILEGES ON *.* TO '$MYSQL_ROOT_USER'@'%' WITH GRANT OPTION;
+FLUSH PRIVILEGES;
+EOF
+
   fi
-
-  echo -e "\033[35;1m Securing MySQL... \033[0m"
-  sleep 5
-
-  apt -y install expect
-
-  SECURE_MYSQL=$(expect -c "
-    set timeout 10
-    spawn mysql_secure_installation
-    expect \"Enter current password for root (enter for none):\"
-    send \"$MYSQL_ROOT_PASSWORD\r\"
-    expect \"Change the root password?\"
-    send \"n\r\"
-    expect \"Remove anonymous users?\"
-    send \"Y\r\"
-    expect \"Disallow root login remotely?\"
-    send \"Y\r\"
-    expect \"Remove test database and access to it?\"
-    send \"Y\r\"
-    expect \"Reload privilege tables now?\"
-    send \"Y\r\"
-    expect eof
-  ")
-
-  echo "$SECURE_MYSQL"
-  apt-get -y purge expect
-
 } # End function install_mysql
-
 
 function optimize_stack {
 
@@ -183,7 +230,7 @@ function optimize_stack {
     sed -i 's/^[^#]/#&/' /etc/cron.d/awstats
   fi
 
-  systemctl stop php8.1-fpm.service
+  sudo systemctl stop php8.1-fpm.service
 
   php_fpm_conf="/etc/php/*/fpm/pool.d/www.conf"
   # Limit FPM processes
@@ -216,7 +263,6 @@ function optimize_stack {
 
 } # End function optimize
 
-
 function install_postfix {
 
   # Install postfix
@@ -236,7 +282,6 @@ function install_postfix {
   systemctl restart postfix
 
 } # End function install_postfix
-
 
 function install_dbgui {
 
@@ -286,22 +331,6 @@ function install_dbgui {
 
 } # End function install_dbgui
 
-function create_new_user {
-    echo ""
-    echo "Enter username"
-    read NEW_USER
-
-    adduser $NEW_USER
-
-    echo ""
-    echo "Adding ${NEW_USER} to sudo group"
-
-    usermod -aG sudo $NEW_USER
-
-    echo ""
-    echo "User successfully created and added to sudoer"
-} # End function create_new_user
-
 function check_tmp_secured {
 
   temp1=`grep -w "/var/tempFS /tmp ext3 loop,nosuid,noexec,rw 0 0" /etc/fstab | wc -l`
@@ -314,7 +343,6 @@ function check_tmp_secured {
   fi
 
 } # End function check_tmp_secured
-
 
 function secure_tmp_tmpfs {
 
@@ -347,7 +375,6 @@ function secure_tmp_tmpfs {
   echo -e "\033[35;1m /tmp and /var/tmp secured using tmpfs. \033[0m"
 
 } # End function secure_tmp_tmpfs
-
 
 function secure_tmp_dd {
 
@@ -386,21 +413,17 @@ function secure_tmp_dd {
 } # End function secure_tmp_tmpdd
 
 function install_letsencrypt {
-  # apt-get install -y software-properties-common
-  # add-apt-repository ppa:certbot/certbot
-  # apt-get update
-  # apt-get install -y certbot python-certbot-nginx
-  apt update
-#   apt install -y python3-acme python3-certbot python3-mock python3-openssl python3-pkg-resources python3-pyparsing python3-zope.interface
-#   apt install -y python3-certbot-nginx
-  apt install -y certbot python3-certbot-nginx
+
+  sudo apt update
+  sudo apt install -y certbot python3-certbot-nginx
   ufw allow 'Nginx Full'
   ufw delete allow 'Nginx HTTP'
-}
+
+} # End function install_letsencrypt
 
 function restart_webserver {
 
-  systemctl restart nginx.service
+  sudo systemctl restart nginx.service
 
 } # End function restart_webserver
 
