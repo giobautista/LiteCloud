@@ -6,7 +6,7 @@ source ./options.conf
 
 function server_init {
   # Detect distribution. Debian or Ubuntu
-  DISTRO=ID=$(grep -oP '(?<=^ID=).+' /etc/os-release | tr -d '"')
+  DISTRO=$(grep -oP '(?<=^ID=).+' /etc/os-release | tr -d '"')
 
   if  [ $DISTRO != "ubuntu" ]; then
       echo -e "\033[35;1mSorry, the installation only support Ubuntu\033[0m"
