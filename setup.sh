@@ -9,7 +9,7 @@ function server_init {
   DISTRO=$(grep -oP '(?<=^ID=).+' /etc/os-release | tr -d '"')
 
   if [ $DISTRO != "ubuntu" ]; then
-      echo -e "\033[35;1mSorry, the installation only support Ubuntu 20.04, 22.04 LTS\033[0m"
+      echo -e "\033[35;1mSorry, the installation only support Ubuntu\033[0m"
       exit 1
   fi
 
