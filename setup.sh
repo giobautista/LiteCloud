@@ -2,20 +2,14 @@
 
 source ./options.conf
 
-# Get server's IP
-SERVER_IP=$(curl -s https://checkip.amazonaws.com)
-
-# Generate random password
-RAND_PASS=$(openssl rand -base64 32|sha256sum|base64|head -c 32| tr '[:upper:]' '[:lower:]')
-
 #### Functions Begin ####
 
 function server_init {
   # Detect distribution. Debian or Ubuntu
   DISTRO=ID=$(grep -oP '(?<=^ID=).+' /etc/os-release | tr -d '"')
 
-  if  [ $DISTRO != "ubuntu" ] || [ $DISTRO != 'debian' ]; then
-      echo -e "\033[35;1mSorry, the installation only support Ubuntu and Debian\033[0m"
+  if  [ $DISTRO != "ubuntu" ]; then
+      echo -e "\033[35;1mSorry, the installation only support Ubuntu\033[0m"
       exit 1
   fi
 
@@ -31,6 +25,9 @@ function server_init {
 } #End function server_init
 
 function basic_server_setup {
+  # Get server's IP
+  SERVER_IP=$(curl -s https://checkip.amazonaws.com)
+
   # Set timezone
   echo -e "\033[35;1m Setting Timezone... \033[0m"
   timedatectl set-timezone $TIME_ZONE
