@@ -1,14 +1,5 @@
 #!/bin/bash
 
-# Check root
-if [ "$(id -u)" = "0" ]; then
-    clear
-else
-    clear
-    echo -e "\033[35;1mYou must have root access to run this script\033[0m"
-    exit 1
-fi
-
 source ./options.conf
 
 # Get server's IP
@@ -17,46 +8,18 @@ SERVER_IP=$(curl -s https://checkip.amazonaws.com)
 # Generate random password
 RAND_PASS=$(openssl rand -base64 32|sha256sum|base64|head -c 32| tr '[:upper:]' '[:lower:]')
 
+# Detect distribution. Debian or Ubuntu
+DISTRO=`lsb_release -i -s`
+# Distribution's release. Squeeze, wheezy, precise etc
+RELEASE=`lsb_release -c -s`
+if  [ $DISTRO = "" ]; then
+    echo -e "\033[35;1mPlease run 'apt -y install lsb-release' before using this script.\033[0m"
+    exit 1
+fi
+
 #### Functions Begin ####
 
-function server_check {
-    # Get distribution, Ubuntu or Debian
-    DISTRO=$(grep -oP '(?<=^ID=).+' /etc/os-release | tr -d '"')
-
-    # Get distribution version.
-    VERSION=$(grep -oP '(?<=^VERSION_ID=).+' /etc/os-release | tr -d '"')
-
-    # Latest release version, 22.04 Focal
-    if [ "$DISTRO" = "ubuntu" ] || [ "$DISTRO" = "debian" ]; then
-      case $VERSION in
-        22.04)
-          break
-          ;;
-        12.1)
-          break
-          ;;
-        *)
-          echo -e "\033[35;1mLiteCloud requires Ubuntu 22.04 LTS or Debian 12.1\033[0m"
-          exit 1;
-          break
-          ;;
-      esac
-    else
-      echo -e "\033[35;1mLiteCloud requires Ubuntu 22.04 LTS or Debian 12.1\033[0m"
-      exit 1
-    fi
-} # End function server_check
-
 function basic_server_setup {
-
-    sudo apt update
-    sudo apt -y upgrade
-    sudo apt -y install git nano expect lsb-release ufw curl wget vim rpl sed zip unzip openssl dirmngr dos2unix
-    sudo systemctl stop apache2.service
-    sudo systemctl stop sendmail.service
-    sudo systemctl stop bind9.service
-    sudo systemctl stop nscd.service
-    sudo apt -y purge nscd bind9 sendmail apache2 apache2.2-common
 
   # Set timezone
   echo -e "\033[35;1m Setting Timezone... \033[0m"
@@ -83,12 +46,12 @@ function basic_server_setup {
   sed -i 's/^#net.ipv6.conf.all.accept_source_route = 0/net.ipv6.conf.all.accept_source_route = 0/' /etc/sysctl.conf
   sed -i 's/^net.ipv6.conf.all.accept_source_route = 1/net.ipv6.conf.all.accept_source_route = 0/' /etc/sysctl.conf
 	if  [ $ROOT_LOGIN = "no" ]; then
-    sudo useradd -m -s /bin/bash $SUDO_USER
-    echo "$SUDO_USER:$SUDO_PASS"|sudo chpasswd
-    sudo usermod -aG sudo $SUDO_USER
+    useradd -m -s /bin/bash $SUDO_USER
+    echo "$SUDO_USER:$SUDO_PASS"|chpasswd
+    usermod -aG $SUDO_USER
 
     echo -e "\033[35;1m Root login disabled, SSH port set to $SSHD_PORT. \033[0m"
-    echo -e "\033[35;1m Remember to use SUDO credentials for login or you will be locked out from your box! \033[0m"
+    echo -e "\033[35;1m Remember to use credentials for login or you will be locked out from your box! \033[0m"
 
 	else
 		echo -e "\033[35;1m Root login active, SSH port set to $SSHD_PORT. \033[0m"
@@ -96,27 +59,142 @@ function basic_server_setup {
 
 } # End function basic_server_setup
 
+function setup_apt {
+
+    # If user enables apt option in options.conf
+    if [ $CONFIGURE_APT = "yes" ]; then
+        cp /etc/apt/{sources.list,sources.list.bak}
+
+        if [ $DISTRO = "Debian" ]; then
+            # Debian system, use Debian sources.list
+            echo -e "\033[35;1mConfiguring APT for Debian. \033[0m"
+            cat > /etc/apt/sources.list <<EOF
+# Main repo
+deb http://http.debian.net/debian $RELEASE main non-free contrib
+deb-src http://http.debian.net/debian $RELEASE main non-free contrib
+# Security
+deb http://security.debian.org/ $RELEASE/updates main contrib non-free
+deb-src http://security.debian.org/ $RELEASE/updates main contrib non-free
+
+EOF
+        fi # End if DISTRO = Debian
+
+
+        if [ $DISTRO = "Ubuntu" ]; then
+            # Ubuntu system, use Ubuntu sources.list
+            echo -e "\033[35;1mConfiguring APT for Ubuntu. \033[0m"
+            cat > /etc/apt/sources.list <<EOF
+# Main repo
+deb mirror://mirrors.ubuntu.com/mirrors.txt $RELEASE main restricted universe multiverse
+deb-src mirror://mirrors.ubuntu.com/mirrors.txt $RELEASE main restricted universe multiverse
+
+# Security & updates
+deb mirror://mirrors.ubuntu.com/mirrors.txt $RELEASE-updates main restricted universe multiverse
+deb-src mirror://mirrors.ubuntu.com/mirrors.txt $RELEASE-updates main restricted universe multiverse
+deb mirror://mirrors.ubuntu.com/mirrors.txt $RELEASE-security main restricted universe multiverse
+deb-src mirror://mirrors.ubuntu.com/mirrors.txt $RELEASE-security main restricted universe multiverse
+
+EOF
+        fi # End if DISTRO = Ubuntu
+
+
+        #  Report error if detected distro is not yet supported
+        if [ $DISTRO  != "Ubuntu" ] && [ $DISTRO  != "Debian" ]; then
+            echo -e "\033[35;1mSorry, Distro: $DISTRO and Release: $RELEASE is not supported at this time. \033[0m"
+            exit 1
+        fi
+
+    fi # End if CONFIGURE_APT = yes
+
+
+    ## Third party mirrors ##
+
+    # If user wants to install nginx from official repo and webserver=nginx
+    if  [ $USE_NGINX_ORG_REPO = "yes" ]; then
+        echo -e "\033[35;1mEnabling nginx.org repo for Debian $RELEASE. \033[0m"
+        cat > /etc/apt/sources.list.d/nginx.list <<EOF
+# Official Nginx.org repository
+deb http://nginx.org/packages/`echo $DISTRO | tr '[:upper:]' '[:lower:]'`/ $RELEASE nginx
+deb-src http://nginx.org/packages/`echo $DISTRO | tr '[:upper:]' '[:lower:]'`/ $RELEASE nginx
+
+EOF
+
+        # Set APT pinning for Nginx package
+        cat > /etc/apt/preferences.d/Nginx <<EOF
+# Prevent potential conflict with main repo/dotdeb
+# Always install from official nginx.org repo
+Package: nginx
+Pin: origin nginx.org
+Pin-Priority: 1000
+
+EOF
+        wget http://nginx.org/packages/keys/nginx_signing.key
+        cat nginx_signing.key | apt-key add -
+    fi # End if USE_NGINX_ORG_REPO = yes
+
+
+    # If user wants to install MariaDB instead of MySQL
+    if [ $DBSERVER = 2 ]; then
+        echo -e "\033[35;1mEnabling MariaDB.org repo for $DISTRO $RELEASE. \033[0m"
+        cat > /etc/apt/sources.list.d/MariaDB.list <<EOF
+# http://mariadb.org/mariadb/repositories/
+deb $MARIADB_REPO`echo $DISTRO | tr [:upper:] [:lower:]` $RELEASE main
+deb-src $MARIADB_REPO`echo $DISTRO | tr [:upper:] [:lower:]` $RELEASE main
+
+EOF
+
+        # Set APT pinning for MariaDB packages
+        cat > /etc/apt/preferences.d/MariaDB <<EOF
+# Prevent potential conflict with main repo that causes
+# MariaDB to be uninstalled when upgrading mysql-common
+Package: *
+Pin: origin $MARIADB_REPO_HOSTNAME
+Pin-Priority: 1000
+
+EOF
+
+        # Import MariaDB signing key
+        mkdir -p /etc/apt/keyrings
+        curl -o /etc/apt/keyrings/mariadb-keyring.pgp 'https://mariadb.org/mariadb_release_signing_key.pgp'
+    fi # End if user wants to install MariaDB
+
+    apt update
+    echo -e "\033[35;1m Successfully configured /etc/apt/sources.list \033[0m"
+
+} # End function setup_apt
+
 function install_webserver {
 
-  sudo apt -y install nginx
+  apt -y install nginx
+
+  if  [ $USE_NGINX_ORG_REPO = "yes" ]; then
+    mkdir /etc/nginx/sites-available
+    mkdir /etc/nginx/sites-enabled
+
+    # Disable vhost that isn't in the sites-available folder. Put a hash in front of any line.
+    sed -i 's/^[^#]/#&/' /etc/nginx/conf.d/default.conf
+
+    # Enable default vhost in /etc/nginx/sites-available
+    ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
+  fi
 
   # Add a catch-all default vhost
-  sudo cat ./config/nginx_default_vhost.conf > /etc/nginx/sites-available/default
+  cat ./config/nginx_default_vhost.conf > /etc/nginx/sites-available/default
 
   # Change default vhost root directory to /usr/share/nginx/html;
   sed -i 's/\(root \/usr\/share\/nginx\/\).*/\1html;/' /etc/nginx/sites-available/default
 
-  sudo systemctl start nginx.service
-  sudo rpl -i -w "http {" "http { limit_req_zone \$binary_remote_addr zone=one:10m rate=1r/s; fastcgi_read_timeout 300;" /etc/nginx/nginx.conf
-  sudo rpl -i -w "http {" "http { limit_req_zone \$binary_remote_addr zone=one:10m rate=1r/s; fastcgi_read_timeout 300;" /etc/nginx/nginx.conf
-  sudo systemctl enable nginx.service
+  systemctl start nginx.service
+  rpl -i -w "http {" "http { limit_req_zone \$binary_remote_addr zone=one:10m rate=1r/s; fastcgi_read_timeout 300;" /etc/nginx/nginx.conf
+  rpl -i -w "http {" "http { limit_req_zone \$binary_remote_addr zone=one:10m rate=1r/s; fastcgi_read_timeout 300;" /etc/nginx/nginx.conf
+  systemctl enable nginx.service
 
   # Configure firewall
-  sudo apt-get -y install fail2ban
+  apt-get -y install fail2ban
   JAIL=/etc/fail2ban/jail.local
-  sudo unlink JAIL
-  sudo touch $JAIL
-  sudo cat > "$JAIL" <<EOF
+  unlink JAIL
+  touch $JAIL
+  cat > "$JAIL" <<EOF
 [DEFAULT]
 bantime = 3600
 banaction = iptables-multiport
@@ -124,50 +202,50 @@ banaction = iptables-multiport
 enabled = true
 logpath  = /var/log/auth.log
 EOF
-  sudo systemctl restart fail2ban
-  sudo ufw --force enable
-  sudo ufw allow ssh
-  sudo ufw allow http
-  sudo ufw allow https
-  sudo ufw allow "Nginx Full"
+  systemctl restart fail2ban
+  ufw --force enable
+  ufw allow ssh
+  ufw allow http
+  ufw allow https
+  ufw allow "Nginx Full"
 
 } # End function install_webserver
 
 function install_php {
 
   # Add PHP repo
-  sudo apt install -y ca-certificates apt-transport-https software-properties-common
-  sudo add-apt-repository -y ppa:ondrej/php
-  sudo apt update
+  apt install -y ca-certificates apt-transport-https software-properties-common
+  add-apt-repository -y ppa:ondrej/php
+  apt update
 
   # Install PHP packages and extensions specified in options.conf
-  sudo apt -y install $PHP_BASE
-  sudo apt -y install $PHP_EXTRAS
+  apt -y install $PHP_BASE
+  apt -y install $PHP_EXTRAS
   # Enable PHP-FPM
-  sudo systemctl enable php8.1-fpm
+  systemctl enable php8.1-fpm
 
 } # End function install_php
 
 function install_extras {
 
   if [ $AWSTATS_ENABLE = 'yes' ]; then
-    sudo apt -y install awstats
+    apt -y install awstats
   fi
 
   # Install any other packages specified in options.conf
-  sudo apt -y install $MISC_PACKAGES
+  apt -y install $MISC_PACKAGES
 
 } # End function install_extras
 
 function install_mysql {
 
   if [ $DBSERVER = 1 ]; then
-    sudo apt -y install mariadb-server
+    apt -y install mariadb-server
 
     echo -e "\033[35;1m Securing MariaDB... \033[0m"
     sleep 2
 
-    SECURE_MYSQL=$(expect -c "
+    SECURE_MARIADB=$(expect -c "
         set timeout 10
         spawn mysql_secure_installation
         expect \"Enter current password for root (enter for none):\"
@@ -184,10 +262,10 @@ function install_mysql {
         send \"Y\r\"
         expect eof
     ")
-    echo "$SECURE_MYSQL"
+    echo "$SECURE_MARIADB"
 
   else
-    sudo apt -y install mysql-server
+    apt -y install mysql-server
 
     echo -e "\033[35;1m Securing MySQL... \033[0m"
     sleep 2
@@ -228,12 +306,6 @@ function optimize_stack {
   # If using Nginx, copy over nginx.conf
   cat ./config/nginx.conf > /etc/nginx/nginx.conf
 
-  # Change nginx user from  "www-data" to "nginx". Not really necessary
-  # because "www-data" user is created when installing PHP-FPM
-  if  [ $USE_NGINX_ORG_REPO = "yes" ]; then
-    sed -i 's/^user\s*www-data/user nginx/' /etc/nginx/nginx.conf
-  fi
-
   # Change logrotate for nginx log files to keep 10 days worth of logs
   nginx_file=`find /etc/logrotate.d/ -maxdepth 1 -name "nginx*"`
   sed -i 's/\trotate .*/\trotate 10/' $nginx_file
@@ -248,7 +320,7 @@ function optimize_stack {
     sed -i 's/^[^#]/#&/' /etc/cron.d/awstats
   fi
 
-  sudo systemctl stop php8.1-fpm.service
+  systemctl stop php8.1-fpm.service
 
   php_fpm_conf="/etc/php/*/fpm/pool.d/www.conf"
   # Limit FPM processes
@@ -432,8 +504,8 @@ function secure_tmp_dd {
 
 function install_letsencrypt {
 
-  sudo apt update
-  sudo apt install -y certbot python3-certbot-nginx
+  apt update
+  apt install -y certbot python3-certbot-nginx
   ufw allow 'Nginx Full'
   ufw delete allow 'Nginx HTTP'
 
@@ -441,93 +513,12 @@ function install_letsencrypt {
 
 function restart_webserver {
 
-  sudo systemctl restart nginx.service
+  systemctl restart nginx.service
 
 } # End function restart_webserver
 
-
-
-#### Main program begins ####
-
-# Show Menu
 if [ ! -n "$1" ]; then
   echo ""
-  echo -e  "\033[35;1mNOTICE: Edit options.conf before using\033[0m"
-  echo -e  "\033[35;1mA standard setup would be: apt + basic + install + optimize\033[0m"
+  echo -e  "\033[35;1mNOTICE: Please run .install.sh to initiate the process\033[0m"
   echo ""
-  echo -e  "\033[35;1mSelect from the options below to use this script:- \033[0m"
-
-  echo -n  "$0"
-  echo -ne "\033[36m basic\033[0m"
-  echo     " - Disable root SSH logins, change SSH port."
-
-  echo -n "$0"
-  echo -ne "\033[36m install\033[0m"
-  echo     " - Installs LNMP stack. Also installs Postfix MTA."
-
-  echo -n "$0"
-  echo -ne "\033[36m optimize\033[0m"
-  echo     " - Optimizes webserver.conf, php.ini, AWStats & logrotate. Also generates self signed SSL certs."
-
-  echo -n "$0"
-  echo -ne "\033[36m letsencrypt\033[0m"
-  echo     " - Installing Let's Encrypt"
-
-  echo -n "$0"
-  echo -ne "\033[36m dbgui\033[0m"
-  echo     " - Installs or updates Adminer/phpMyAdmin."
-
-  echo -n "$0"
-  echo -ne "\033[36m tmpfs\033[0m"
-  echo     " - Secures /tmp and /var/tmp using tmpfs. Not recommended for servers with less than 512MB dedicated RAM."
-
-  echo -n "$0"
-  echo -ne "\033[36m tmpdd\033[0m"
-  echo     " - Secures /tmp and /var/tmp using a file created on disk. Tmp size is defined in options.conf."
-
-  echo ""
-  exit
 fi
-
-# End Show Menu
-case $1 in
-basic)
-  server_check
-  basic_server_setup
-  ;;
-install)
-  install_webserver
-  install_mysql
-  install_php
-  install_extras
-  install_postfix
-  restart_webserver
-  systemctl restart php8.1-fpm.service
-  echo -e "\033[35;1m Webserver + PHP-FPM + MySQL install complete! \033[0m"
-  ;;
-optimize)
-  optimize_stack
-  ;;
-letsencrypt)
-  install_letsencrypt
-  ;;
-dbgui)
-  install_dbgui
-  ;;
-tmpdd)
-  check_tmp_secured
-  if [ $? = 0  ]; then
-    secure_tmp_dd
-  else
-    echo -e "\033[35;1mFunction canceled. /tmp already secured. \033[0m"
-  fi
-  ;;
-tmpfs)
-  check_tmp_secured
-  if [ $? = 0  ]; then
-    secure_tmp_tmpfs
-  else
-    echo -e "\033[35;1mFunction canceled. /tmp already secured. \033[0m"
-  fi
-  ;;
-esac

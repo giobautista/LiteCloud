@@ -11,6 +11,20 @@ fi
 
 echo ""
 clear
+echo "Preparing server"
+sleep 2
+
+apt update
+apt -y upgrade
+apt -y install git nano expect lsb-release ufw curl wget vim rpl sed zip unzip openssl dirmngr dos2unix
+systemctl stop apache2.service
+systemctl stop sendmail.service
+systemctl stop bind9.service
+systemctl stop nscd.service
+apt -y purge nscd bind9 sendmail apache2 apache2.2-common
+
+echo ""
+clear
 echo "Installing updates & configuring SSHD / hostname."
 sleep 2
 ./setup.sh basic
