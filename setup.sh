@@ -136,8 +136,9 @@ EOF
 function install_php {
 
   # Add PHP repo
+  sudo apt install -y ca-certificates apt-transport-https software-properties-common
   sudo add-apt-repository -y ppa:ondrej/php
-  sudo apt-get update
+  sudo apt update
 
   # Install PHP packages and extensions specified in options.conf
   sudo apt -y install $PHP_BASE
