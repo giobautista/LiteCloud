@@ -17,33 +17,35 @@ SERVER_IP=$(curl -s https://checkip.amazonaws.com)
 # Generate random password
 RAND_PASS=$(openssl rand -base64 32|sha256sum|base64|head -c 32| tr '[:upper:]' '[:lower:]')
 
-# Get distribution, Ubuntu or Debian
-DISTRO=$(grep -oP '(?<=^ID=).+' /etc/os-release | tr -d '"')
-
-# Get distribution version.
-VERSION=$(grep -oP '(?<=^VERSION_ID=).+' /etc/os-release | tr -d '"')
-
-# Latest release version, 22.04 Focal
-if [ "$DISTRO" = "ubuntu" ] || [ "$DISTRO" = "debian" ]; then
-  case $VERSION in
-    22.04)
-      break
-      ;;
-    12.1)
-      break
-      ;;
-    *)
-      echo -e "\033[35;1mLiteCloud requires Ubuntu 22.04 LTS or Debian 12.1\033[0m"
-      exit 1;
-      break
-      ;;
-  esac
-else
-  echo -e "\033[35;1mLiteCloud requires Ubuntu 22.04 LTS or Debian 12.1\033[0m"
-  exit 1
-fi
-
 #### Functions Begin ####
+
+function server_check {
+    # Get distribution, Ubuntu or Debian
+    DISTRO=$(grep -oP '(?<=^ID=).+' /etc/os-release | tr -d '"')
+
+    # Get distribution version.
+    VERSION=$(grep -oP '(?<=^VERSION_ID=).+' /etc/os-release | tr -d '"')
+
+    # Latest release version, 22.04 Focal
+    if [ "$DISTRO" = "ubuntu" ] || [ "$DISTRO" = "debian" ]; then
+      case $VERSION in
+        22.04)
+          break
+          ;;
+        12.1)
+          break
+          ;;
+        *)
+          echo -e "\033[35;1mLiteCloud requires Ubuntu 22.04 LTS or Debian 12.1\033[0m"
+          exit 1;
+          break
+          ;;
+      esac
+    else
+      echo -e "\033[35;1mLiteCloud requires Ubuntu 22.04 LTS or Debian 12.1\033[0m"
+      exit 1
+    fi
+} # End function server_check
 
 function basic_server_setup {
 
@@ -485,6 +487,7 @@ fi
 # End Show Menu
 case $1 in
 basic)
+  server_check
   basic_server_setup
   ;;
 install)
