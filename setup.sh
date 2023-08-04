@@ -8,19 +8,29 @@ SERVER_IP=$(curl -s https://checkip.amazonaws.com)
 # Generate random password
 RAND_PASS=$(openssl rand -base64 32|sha256sum|base64|head -c 32| tr '[:upper:]' '[:lower:]')
 
-# Detect distribution. Debian or Ubuntu
-DISTRO=`lsb_release -i -s`
-# Distribution's release. Squeeze, wheezy, precise etc
-RELEASE=`lsb_release -c -s`
-if  [ $DISTRO = "" ]; then
-    echo -e "\033[35;1mPlease run 'apt -y install lsb-release' before using this script.\033[0m"
-    exit 1
-fi
-
 #### Functions Begin ####
 
-function basic_server_setup {
+function server_init {
+  # Detect distribution. Debian or Ubuntu
+  DISTRO=ID=$(grep -oP '(?<=^ID=).+' /etc/os-release | tr -d '"')
 
+  if  [ $DISTRO != "ubuntu" ] || [ $DISTRO != 'debian' ]; then
+      echo -e "\033[35;1mSorry, the installation only support Ubuntu and Debian\033[0m"
+      exit 1
+  fi
+
+  apt update
+  apt -y upgrade
+  apt -y install git nano expect lsb-release ufw curl wget vim rpl sed zip unzip openssl dirmngr dos2unix
+  systemctl stop apache2.service
+  systemctl stop sendmail.service
+  systemctl stop bind9.service
+  systemctl stop nscd.service
+  apt -y purge nscd bind9 sendmail apache2 apache2.2-common
+
+} #End function server_init
+
+function basic_server_setup {
   # Set timezone
   echo -e "\033[35;1m Setting Timezone... \033[0m"
   timedatectl set-timezone $TIME_ZONE
@@ -59,124 +69,12 @@ function basic_server_setup {
 
 } # End function basic_server_setup
 
-function setup_apt {
-
-    # If user enables apt option in options.conf
-    if [ $CONFIGURE_APT = "yes" ]; then
-        cp /etc/apt/{sources.list,sources.list.bak}
-
-        if [ $DISTRO = "Debian" ]; then
-            # Debian system, use Debian sources.list
-            echo -e "\033[35;1mConfiguring APT for Debian. \033[0m"
-            cat > /etc/apt/sources.list <<EOF
-# Main repo
-deb http://http.debian.net/debian $RELEASE main non-free contrib
-deb-src http://http.debian.net/debian $RELEASE main non-free contrib
-# Security
-deb http://security.debian.org/ $RELEASE/updates main contrib non-free
-deb-src http://security.debian.org/ $RELEASE/updates main contrib non-free
-
-EOF
-        fi # End if DISTRO = Debian
-
-
-        if [ $DISTRO = "Ubuntu" ]; then
-            # Ubuntu system, use Ubuntu sources.list
-            echo -e "\033[35;1mConfiguring APT for Ubuntu. \033[0m"
-            cat > /etc/apt/sources.list <<EOF
-# Main repo
-deb mirror://mirrors.ubuntu.com/mirrors.txt $RELEASE main restricted universe multiverse
-deb-src mirror://mirrors.ubuntu.com/mirrors.txt $RELEASE main restricted universe multiverse
-
-# Security & updates
-deb mirror://mirrors.ubuntu.com/mirrors.txt $RELEASE-updates main restricted universe multiverse
-deb-src mirror://mirrors.ubuntu.com/mirrors.txt $RELEASE-updates main restricted universe multiverse
-deb mirror://mirrors.ubuntu.com/mirrors.txt $RELEASE-security main restricted universe multiverse
-deb-src mirror://mirrors.ubuntu.com/mirrors.txt $RELEASE-security main restricted universe multiverse
-
-EOF
-        fi # End if DISTRO = Ubuntu
-
-
-        #  Report error if detected distro is not yet supported
-        if [ $DISTRO  != "Ubuntu" ] && [ $DISTRO  != "Debian" ]; then
-            echo -e "\033[35;1mSorry, Distro: $DISTRO and Release: $RELEASE is not supported at this time. \033[0m"
-            exit 1
-        fi
-
-    fi # End if CONFIGURE_APT = yes
-
-
-    ## Third party mirrors ##
-
-    # If user wants to install nginx from official repo and webserver=nginx
-    if  [ $USE_NGINX_ORG_REPO = "yes" ]; then
-        echo -e "\033[35;1mEnabling nginx.org repo for Debian $RELEASE. \033[0m"
-        cat > /etc/apt/sources.list.d/nginx.list <<EOF
-# Official Nginx.org repository
-deb http://nginx.org/packages/`echo $DISTRO | tr '[:upper:]' '[:lower:]'`/ $RELEASE nginx
-deb-src http://nginx.org/packages/`echo $DISTRO | tr '[:upper:]' '[:lower:]'`/ $RELEASE nginx
-
-EOF
-
-        # Set APT pinning for Nginx package
-        cat > /etc/apt/preferences.d/Nginx <<EOF
-# Prevent potential conflict with main repo/dotdeb
-# Always install from official nginx.org repo
-Package: nginx
-Pin: origin nginx.org
-Pin-Priority: 1000
-
-EOF
-        wget http://nginx.org/packages/keys/nginx_signing.key
-        cat nginx_signing.key | apt-key add -
-    fi # End if USE_NGINX_ORG_REPO = yes
-
-
-    # If user wants to install MariaDB instead of MySQL
-    if [ $DBSERVER = 2 ]; then
-        echo -e "\033[35;1mEnabling MariaDB.org repo for $DISTRO $RELEASE. \033[0m"
-        cat > /etc/apt/sources.list.d/MariaDB.list <<EOF
-# http://mariadb.org/mariadb/repositories/
-deb $MARIADB_REPO`echo $DISTRO | tr [:upper:] [:lower:]` $RELEASE main
-deb-src $MARIADB_REPO`echo $DISTRO | tr [:upper:] [:lower:]` $RELEASE main
-
-EOF
-
-        # Set APT pinning for MariaDB packages
-        cat > /etc/apt/preferences.d/MariaDB <<EOF
-# Prevent potential conflict with main repo that causes
-# MariaDB to be uninstalled when upgrading mysql-common
-Package: *
-Pin: origin $MARIADB_REPO_HOSTNAME
-Pin-Priority: 1000
-
-EOF
-
-        # Import MariaDB signing key
-        mkdir -p /etc/apt/keyrings
-        curl -o /etc/apt/keyrings/mariadb-keyring.pgp 'https://mariadb.org/mariadb_release_signing_key.pgp'
-    fi # End if user wants to install MariaDB
-
-    apt update
-    echo -e "\033[35;1m Successfully configured /etc/apt/sources.list \033[0m"
-
-} # End function setup_apt
-
 function install_webserver {
-
-  apt -y install nginx
-
-  if  [ $USE_NGINX_ORG_REPO = "yes" ]; then
-    mkdir /etc/nginx/sites-available
-    mkdir /etc/nginx/sites-enabled
-
-    # Disable vhost that isn't in the sites-available folder. Put a hash in front of any line.
-    sed -i 's/^[^#]/#&/' /etc/nginx/conf.d/default.conf
-
-    # Enable default vhost in /etc/nginx/sites-available
-    ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
-  fi
+  # Install NGINX
+  apt -y install nginx-core
+  sudo rpl -i -w "http {" "http { limit_req_zone \$binary_remote_addr zone=one:10m rate=1r/s; fastcgi_read_timeout 300;" /etc/nginx/nginx.conf
+  sudo rpl -i -w "http {" "http { limit_req_zone \$binary_remote_addr zone=one:10m rate=1r/s; fastcgi_read_timeout 300;" /etc/nginx/nginx.conf
+  systemctl start nginx.service
 
   # Add a catch-all default vhost
   cat ./config/nginx_default_vhost.conf > /etc/nginx/sites-available/default
@@ -184,11 +82,25 @@ function install_webserver {
   # Change default vhost root directory to /usr/share/nginx/html;
   sed -i 's/\(root \/usr\/share\/nginx\/\).*/\1html;/' /etc/nginx/sites-available/default
 
-  systemctl start nginx.service
-  rpl -i -w "http {" "http { limit_req_zone \$binary_remote_addr zone=one:10m rate=1r/s; fastcgi_read_timeout 300;" /etc/nginx/nginx.conf
-  rpl -i -w "http {" "http { limit_req_zone \$binary_remote_addr zone=one:10m rate=1r/s; fastcgi_read_timeout 300;" /etc/nginx/nginx.conf
+  # Create common SSL config file
+  cat > /etc/nginx/ssl.conf <<EOF
+ssl on;
+ssl_certificate /etc/ssl/localcerts/webserver.pem;
+ssl_certificate_key /etc/ssl/localcerts/webserver.key;
+
+ssl_session_cache shared:SSL:10m;
+ssl_session_timeout 10m;
+
+ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+ssl_ciphers HIGH:!aNULL:!MD5;
+ssl_prefer_server_ciphers on;
+EOF
+
   systemctl enable nginx.service
 
+} # End function install_webserver
+
+function configure_firewall {
   # Configure firewall
   apt-get -y install fail2ban
   JAIL=/etc/fail2ban/jail.local
@@ -208,11 +120,11 @@ EOF
   ufw allow http
   ufw allow https
   ufw allow "Nginx Full"
+  utf reload
 
-} # End function install_webserver
+} # End funtion configure_firewall
 
 function install_php {
-
   # Add PHP repo
   apt install -y ca-certificates apt-transport-https software-properties-common
   add-apt-repository -y ppa:ondrej/php
@@ -221,13 +133,13 @@ function install_php {
   # Install PHP packages and extensions specified in options.conf
   apt -y install $PHP_BASE
   apt -y install $PHP_EXTRAS
+
   # Enable PHP-FPM
   systemctl enable php8.1-fpm
 
 } # End function install_php
 
 function install_extras {
-
   if [ $AWSTATS_ENABLE = 'yes' ]; then
     apt -y install awstats
   fi
@@ -238,9 +150,9 @@ function install_extras {
 } # End function install_extras
 
 function install_mysql {
-
+  # Check if user wants mariadb
   if [ $DBSERVER = 1 ]; then
-    apt -y install mariadb-server
+    apt -y install mariadb-server mariadb-client
 
     echo -e "\033[35;1m Securing MariaDB... \033[0m"
     sleep 2
@@ -265,7 +177,7 @@ function install_mysql {
     echo "$SECURE_MARIADB"
 
   else
-    apt -y install mysql-server
+    apt -y install mysql-server mysql-client
 
     echo -e "\033[35;1m Securing MySQL... \033[0m"
     sleep 2
@@ -302,7 +214,6 @@ EOF
 } # End function install_mysql
 
 function optimize_stack {
-
   # If using Nginx, copy over nginx.conf
   cat ./config/nginx.conf > /etc/nginx/nginx.conf
 
@@ -343,18 +254,16 @@ function optimize_stack {
   sed -i 's/^cgi.fix_pathinfo.*/cgi.fix_pathinfo = 0/' $php_ini_dir
   sed -i 's/^disable_functions.*/disable_functions = exec,system,passthru,shell_exec,escapeshellarg,escapeshellcmd,proc_close,proc_open,dl,popen,show_source/' $php_ini_dir
 
-
   restart_webserver
   sleep 2
   systemctl start php8.1-fpm.service
   sleep 2
   systemctl restart php8.1-fpm.service
-  echo -e "\033[35;1m Optimize complete! \033[0m"
+  echo -e "\033[35;1m Optimization complete! \033[0m"
 
 } # End function optimize
 
 function install_postfix {
-
   # Install postfix
   echo "postfix postfix/main_mailer_type select Internet Site" | debconf-set-selections
   echo "postfix postfix/mailname string $HOSTNAME_FQDN" | debconf-set-selections
@@ -374,7 +283,6 @@ function install_postfix {
 } # End function install_postfix
 
 function install_dbgui {
-
   # If user selected phpMyAdmin in options.conf
   if [ $DB_GUI = 1  ]; then
     mkdir /tmp/phpmyadmin
@@ -503,7 +411,7 @@ function secure_tmp_dd {
 } # End function secure_tmp_tmpdd
 
 function install_letsencrypt {
-
+  # Install Let's Encrypt
   apt update
   apt install -y certbot python3-certbot-nginx
   ufw allow 'Nginx Full'
@@ -523,15 +431,54 @@ if [ ! -n "$1" ]; then
   echo ""
 fi
 
+# Show Menu
+if [ ! -n "$1" ]; then
+  echo ""
+  echo -e  "\033[35;1mNOTICE: Edit options.conf before using\033[0m"
+  echo -e  "\033[35;1mA standard setup would be: basic + install + optimize\033[0m"
+  echo ""
+  echo -e  "\033[35;1mSelect from the options below to use this script:- \033[0m"
+
+  echo -n  "$0"
+  echo -ne "\033[36m basic\033[0m"
+  echo     " - Disable root SSH logins, change SSH port."
+
+  echo -n "$0"
+  echo -ne "\033[36m install\033[0m"
+  echo     " - Installs LNMP stack. Also installs Postfix MTA."
+
+  echo -n "$0"
+  echo -ne "\033[36m optimize\033[0m"
+  echo     " - Optimizes webserver.conf, php.ini, AWStats & logrotate. Also generates self signed SSL certs."
+
+  echo -n "$0"
+  echo -ne "\033[36m letsencrypt\033[0m"
+  echo     " - Installing Let's Encrypt"
+
+  echo -n "$0"
+  echo -ne "\033[36m dbgui\033[0m"
+  echo     " - Installs or updates Adminer/phpMyAdmin."
+
+  echo -n "$0"
+  echo -ne "\033[36m tmpfs\033[0m"
+  echo     " - Secures /tmp and /var/tmp using tmpfs. Not recommended for servers with less than 512MB dedicated RAM."
+
+  echo -n "$0"
+  echo -ne "\033[36m tmpdd\033[0m"
+  echo     " - Secures /tmp and /var/tmp using a file created on disk. Tmp size is defined in options.conf."
+
+  echo ""
+  exit
+fi # End Show Menu
+
 case $1 in
-apt)
-    setup_apt
-    ;;
 basic)
+  server_init
   basic_server_setup
   ;;
 install)
   install_webserver
+  configure_firewall
   install_mysql
   install_php
   install_extras
