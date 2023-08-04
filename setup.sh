@@ -8,13 +8,12 @@ function server_init {
   # Detect distribution. Debian or Ubuntu
   DISTRO=$(grep -oP '(?<=^ID=).+' /etc/os-release | tr -d '"')
 
-  if  [ $DISTRO != "ubuntu" ] || [ $DISTRO != 'debian' ]; then
-      echo -e "\033[35;1mSorry, the installation only support Ubuntu and Debian\033[0m"
+  if [ $DISTRO != "ubuntu" ]; then
+      echo -e "\033[35;1mSorry, the installation only support Ubuntu 20.04, 22.04 LTS\033[0m"
       exit 1
   fi
 
   apt update
-  apt -y upgrade
   apt -y install git nano expect lsb-release ufw curl wget vim rpl sed zip unzip openssl dirmngr dos2unix
   systemctl stop apache2.service
   systemctl stop sendmail.service
@@ -70,8 +69,6 @@ function basic_server_setup {
 function install_webserver {
   # Install NGINX
   apt -y install nginx-core
-  sudo rpl -i -w "http {" "http { limit_req_zone \$binary_remote_addr zone=one:10m rate=1r/s; fastcgi_read_timeout 300;" /etc/nginx/nginx.conf
-  sudo rpl -i -w "http {" "http { limit_req_zone \$binary_remote_addr zone=one:10m rate=1r/s; fastcgi_read_timeout 300;" /etc/nginx/nginx.conf
   systemctl start nginx.service
 
   # Add a catch-all default vhost
