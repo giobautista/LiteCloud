@@ -45,24 +45,25 @@ function basic_server_setup {
 
   # Set hostname and FQDN
   sed -i 's/'${SERVER_IP}'.*/'${SERVER_IP}' '${HOSTNAME_FQDN}' '${HOSTNAME}'/' /etc/hosts
-  echo "$HOSTNAME" > /etc/hostname
+  echo "$HOSTNAME_FQDN" > /etc/hostname
 
   # Basic hardening of sysctl.conf
   sed -i 's/^#net.ipv4.conf.all.accept_source_route = 0/net.ipv4.conf.all.accept_source_route = 0/' /etc/sysctl.conf
   sed -i 's/^net.ipv4.conf.all.accept_source_route = 1/net.ipv4.conf.all.accept_source_route = 0/' /etc/sysctl.conf
   sed -i 's/^#net.ipv6.conf.all.accept_source_route = 0/net.ipv6.conf.all.accept_source_route = 0/' /etc/sysctl.conf
   sed -i 's/^net.ipv6.conf.all.accept_source_route = 1/net.ipv6.conf.all.accept_source_route = 0/' /etc/sysctl.conf
-	if  [ $ROOT_LOGIN = "no" ]; then
+
+  if  [ $ROOT_LOGIN = "no" ]; then
     useradd -m -s /bin/bash $SUDO_USER
     echo "$SUDO_USER:$SUDO_PASS"|chpasswd
-    usermod -aG $SUDO_USER
+    usermod -aG sudo $SUDO_USER
 
     echo -e "\033[35;1m Root login disabled, SSH port set to $SSHD_PORT. \033[0m"
     echo -e "\033[35;1m Remember to use credentials for login or you will be locked out from your box! \033[0m"
 
-	else
-		echo -e "\033[35;1m Root login active, SSH port set to $SSHD_PORT. \033[0m"
-	fi
+  else
+      echo -e "\033[35;1m Root login active, SSH port set to $SSHD_PORT. \033[0m"
+  fi
 
 } # End function basic_server_setup
 
