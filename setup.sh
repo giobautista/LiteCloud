@@ -519,6 +519,50 @@ function restart_webserver {
 
 if [ ! -n "$1" ]; then
   echo ""
-  echo -e  "\033[35;1mNOTICE: Please run .install.sh to initiate the process\033[0m"
+  echo -e  "\033[35;1mPlease run ./install.sh to initiate the process\033[0m"
   echo ""
 fi
+
+case $1 in
+apt)
+    setup_apt
+    ;;
+basic)
+  basic_server_setup
+  ;;
+install)
+  install_webserver
+  install_mysql
+  install_php
+  install_extras
+  install_postfix
+  restart_webserver
+  systemctl restart php8.1-fpm.service
+  echo -e "\033[35;1m Webserver + PHP-FPM + MySQL install complete! \033[0m"
+  ;;
+optimize)
+  optimize_stack
+  ;;
+letsencrypt)
+  install_letsencrypt
+  ;;
+dbgui)
+  install_dbgui
+  ;;
+tmpdd)
+  check_tmp_secured
+  if [ $? = 0  ]; then
+    secure_tmp_dd
+  else
+    echo -e "\033[35;1mFunction canceled. /tmp already secured. \033[0m"
+  fi
+  ;;
+tmpfs)
+  check_tmp_secured
+  if [ $? = 0  ]; then
+    secure_tmp_tmpfs
+  else
+    echo -e "\033[35;1mFunction canceled. /tmp already secured. \033[0m"
+  fi
+  ;;
+esac

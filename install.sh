@@ -24,6 +24,11 @@ systemctl stop nscd.service
 apt -y purge nscd bind9 sendmail apache2 apache2.2-common
 
 echo ""
+echo "Configuring /etc/apt/sources.list."
+sleep 2
+./setup.sh apt
+
+echo ""
 clear
 echo "Installing updates & configuring SSHD / hostname."
 sleep 2
@@ -63,3 +68,4 @@ echo ""
 echo -e "\033[36;1m Installation complete! \033[0m"
 echo -e "\033[35;1m Root login disabled. \033[0m"
 echo -e "\033[35;1m Remember to use SUDO credentials for login or you will be locked out from your box! \033[0m"
+echo ""
