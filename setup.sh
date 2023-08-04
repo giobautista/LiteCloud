@@ -25,24 +25,36 @@ VERSION=$(grep -oP '(?<=^VERSION_ID=).+' /etc/os-release | tr -d '"')
 
 # Latest release version, 22.04 Focal
 if [ "$DISTRO" = "ubuntu" ] || [ "$DISTRO" = "debian" ]; then
-    case $VERSION in
-        22.04|12.1)
-            break
-            ;;
-        *)
-            echo -e "\033[35;1mLiteCloud requires Ubuntu 22.04 LTS or Debian 12.1\033[0m"
-            exit 1;
-            break
-            ;;
-    esac
+  case $VERSION in
+    22.04)
+      break
+      ;;
+    12.1)
+      break
+      ;;
+    *)
+      echo -e "\033[35;1mLiteCloud requires Ubuntu 22.04 LTS or Debian 12.1\033[0m"
+      exit 1;
+      break
+      ;;
+  esac
 else
-    echo -e "\033[35;1mLiteCloud requires Ubuntu 22.04 LTS or Debian 12.1\033[0m"
-    exit 1
+  echo -e "\033[35;1mLiteCloud requires Ubuntu 22.04 LTS or Debian 12.1\033[0m"
+  exit 1
 fi
 
 #### Functions Begin ####
 
 function basic_server_setup {
+
+    sudo apt update
+    sudo apt -y upgrade
+    sudo apt -y install git nano expect lsb-release ufw curl wget vim rpl sed zip unzip openssl dirmngr dos2unix
+    sudo systemctl stop apache2.service
+    sudo systemctl stop sendmail.service
+    sudo systemctl stop bind9.service
+    sudo systemctl stop nscd.service
+    sudo apt -y purge nscd bind9 sendmail apache2 apache2.2-common
 
   # Set timezone
   echo -e "\033[35;1m Setting Timezone... \033[0m"
@@ -118,7 +130,6 @@ EOF
   sudo ufw allow "Nginx Full"
 
 } # End function install_webserver
-
 
 function install_php {
 

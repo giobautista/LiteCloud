@@ -10,40 +10,33 @@ else
 fi
 
 echo ""
-echo "Preparing server"
-sleep 5
-sudo apt update
-sudo apt -y upgrade
-sudo apt -y install nano expect lsb-release ufw curl wget vim rpl sed zip unzip openssl dirmngr dos2unix
-sudo systemctl stop apache2.service
-sudo systemctl stop sendmail.service
-sudo systemctl stop bind9.service
-sudo systemctl stop nscd.service
-sudo apt -y purge nscd bind9 sendmail apache2 apache2.2-common
-
-echo ""
+clear
 echo "Installing updates & configuring SSHD / hostname."
-sleep 5
+sleep 2
 ./setup.sh basic
 
 echo ""
+clear
 echo "Installing LEMP stack."
-sleep 5
+sleep 2
 ./setup.sh install
 
 echo ""
+clear
 echo "Installing phpmyadmin/adminer."
-sleep 5
+sleep 2
 ./setup.sh dbgui
 
 echo ""
+clear
 echo "Installing Let's Encrypt Certbot."
-sleep 5
+sleep 2
 ./setup.sh letsencrypt
 
 echo ""
+clear
 echo "Optimizing AWStats, PHP, logrotate & webserver config."
-sleep 5
+sleep 2
 ./setup.sh optimize
 
 ## Uncomment to secure /tmp folder
@@ -55,4 +48,4 @@ sleep 5
 echo ""
 echo -e "\033[36;1m Installation complete! \033[0m"
 echo -e "\033[35;1m Root login disabled. \033[0m"
-echo -e "\033[35;1m Please add a normal user now using the \"adduser\" command. \033[0m"
+echo -e "\033[35;1m Remember to use SUDO credentials for login or you will be locked out from your box! \033[0m"
