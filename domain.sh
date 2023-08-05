@@ -361,6 +361,12 @@ function letsencrypt_on {
 
 } # End function letsencrypt_on
 
+function restart_webserver {
+
+  systemctl restart nginx.service
+
+} # End function restart_webserver
+
 #### Main program begins ####
 
 # Show Menu
@@ -377,7 +383,7 @@ if [ ! -n "$1" ]; then
 
   echo -n  "$0"
   echo -ne "\033[36m ssl user Domain.ltd\033[0m"
-  echo     " - Configure Let's Encrypt SSL certificate."
+  echo     " - Configure Let's Encrypt SSL certificate. (cname www required)"
 
   echo -n  "$0"
   echo -ne "\033[36m dbgui on|off\033[0m"
@@ -482,9 +488,31 @@ stats)
   fi
   ;;
 ssl)
+  # Add domain for user
+  # Check for required parameters
+  if [ $# -ne 3 ]; then
+    echo -e "\033[31;1mERROR: Please enter the required parameters.\033[0m"
+    exit 1
+  fi
+
   # Set up variables
   DOMAIN_OWNER=$2
   DOMAIN=$3
+  initialize_variables
+
+  # Check if user exists on system
+  if [ ! -d /home/$DOMAIN_OWNER ]; then
+    echo -e "\033[31;1mERROR: User \"$DOMAIN_OWNER\" does not exist on this system.\033[0m"
+    exit 1
+  fi
+
+  # Check if domain config files exist
+  check_domain_exists
+  # If domain doesn't exist
+  if [ $? -ne 0 ]; then
+    echo -e "\033[31;1mERROR: $DOMAIN does not exist, exiting.\033[0m"
+    exit 1
+  fi
 
   letsencrypt_on
   ;;
